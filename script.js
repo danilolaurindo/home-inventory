@@ -34,6 +34,72 @@
   // In‑memory array of inventory items
   let inventory = [];
 
+  // Chart instance for category visualization
+  let categoryChart = null;
+
+  /**
+   * Update or create the bar chart showing total quantity per category.
+   * This uses Chart.js (imported in index.html). If the chart already
+   * exists, its data will be updated; otherwise a new chart is created.
+   */
+  function updateCategoryChart() {
+    // Check if Chart.js is loaded
+    if (typeof Chart === 'undefined') return;
+    const canvas = document.getElementById('categoryChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    // Compute totals per category
+    const totals = {};
+    inventory.forEach((item) => {
+      const category = item.category || 'Uncategorised';
+      const qty = typeof item.qty === 'number' ? item.qty : 0;
+      totals[category] = (totals[category] || 0) + qty;
+    });
+    const labels = Object.keys(totals);
+    const data = Object.values(totals);
+    if (categoryChart) {
+      // Update existing chart
+      categoryChart.data.labels = labels;
+      categoryChart.data.datasets[0].data = data;
+      categoryChart.update();
+    } else {
+      // Create new chart
+      categoryChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Total Quantity',
+              data: data,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Category',
+              },
+            },
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Total Quantity',
+              },
+            },
+          },
+        },
+      });
+    }
+  }
+
   /**
    * Load inventory data from localStorage. If the key is missing,
    * initialise an empty array.
@@ -153,6 +219,9 @@
 
       tableBody.appendChild(row);
     });
+
+    // After rendering the table and updating category lists, update the chart
+    updateCategoryChart();
   }
 
   /**

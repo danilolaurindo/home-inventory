@@ -86,7 +86,18 @@
       <button id="import-btn" title="Import a previously exported JSON file">Import JSON</button>
     </div>
 
+    <!-- Visualization charts -->
+    <section id="charts-section">
+      <h2>Inventory Overview</h2>
+      <!-- Bar chart showing total quantity by category -->
+      <canvas id="categoryChart"></canvas>
+    </section>
+
     <!-- Link to the JavaScript that drives the application logic -->
+    <!-- Chart.js library for rendering charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- Main application script -->
     <script src="script.js"></script>
   </body>
 </html>
