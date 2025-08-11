@@ -1,1 +1,137 @@
-[]
+[
+  {
+    "name": "Assorted spirits (vodka/gin/whisky)",
+    "category": "Drinks & Beverages",
+    "qty": 5,
+    "unit": "bottles",
+    "location": "Kitchen wall shelf",
+    "notes": "Approximate; includes Finlandia and others",
+    "id": 1
+  },
+  {
+    "name": "Olive oil (kitchen, in-use)",
+    "category": "Pantry & Snacks",
+    "qty": 1,
+    "unit": "bottle",
+    "location": "Kitchen wall shelf",
+    "notes": "Extra virgin; green bottle",
+    "id": 2
+  },
+  {
+    "name": "Clear cooking oil",
+    "category": "Pantry & Snacks",
+    "qty": 1,
+    "unit": "bottle",
+    "location": "Kitchen counter",
+    "notes": "Rapeseed/sunflower (approx)",
+    "id": 3
+  },
+  {
+    "name": "Ketchup (Felix)",
+    "category": "Pantry & Snacks",
+    "qty": 2,
+    "unit": "bottles",
+    "location": "Kitchen wall shelf",
+    "notes": "",
+    "id": 4
+  },
+  {
+    "name": "Coffee beans (green bag)",
+    "category": "Pantry & Snacks",
+    "qty": 1,
+    "unit": "bag",
+    "location": "Kitchen wall shelf",
+    "notes": "Unopened",
+    "id": 5
+  },
+  {
+    "name": "Snack crisps (bag)",
+    "category": "Pantry & Snacks",
+    "qty": 1,
+    "unit": "bag",
+    "location": "Kitchen wall shelf",
+    "notes": "In plastic bag",
+    "id": 6
+  },
+  {
+    "name": "SodaStream machine",
+    "category": "Appliances & Tools",
+    "qty": 1,
+    "unit": "item",
+    "location": "Kitchen counter",
+    "notes": "",
+    "id": 7
+  },
+  {
+    "name": "Instant Pot / pressure cooker",
+    "category": "Appliances & Tools",
+    "qty": 1,
+    "unit": "item",
+    "location": "Kitchen counter",
+    "notes": "",
+    "id": 8
+  },
+  {
+    "name": "NutriBullet blender",
+    "category": "Appliances & Tools",
+    "qty": 1,
+    "unit": "item",
+    "location": "Kitchen counter",
+    "notes": "",
+    "id": 9
+  },
+  {
+    "name": "Soup maker / blender kettle",
+    "category": "Appliances & Tools",
+    "qty": 1,
+    "unit": "item",
+    "location": "Kitchen wall shelf",
+    "notes": "",
+    "id": 10
+  },
+  {
+    "name": "Plastic food containers with lids",
+    "category": "Kitchen & Dining",
+    "qty": 10,
+    "unit": "pcs",
+    "location": "Kitchen counter",
+    "notes": "Mixed sizes; estimate",
+    "id": 11
+  },
+  {
+    "name": "Glass food containers with lids",
+    "category": "Kitchen & Dining",
+    "qty": 3,
+    "unit": "sets",
+    "location": "Kitchen counter",
+    "notes": "Meal-prep glass",
+    "id": 12
+  },
+  {
+    "name": "Red onions (net bag)",
+    "category": "Pantry & Snacks",
+    "qty": 1,
+    "unit": "bag",
+    "location": "Kitchen counter",
+    "notes": "",
+    "id": 13
+  },
+  {
+    "name": "Cutting boards (wood)",
+    "category": "Kitchen & Dining",
+    "qty": 2,
+    "unit": "pcs",
+    "location": "Kitchen counter (left)",
+    "notes": "",
+    "id": 14
+  },
+  {
+    "name": "Aerosol can (blue) - likely cream/spray",
+    "category": "Pantry & Snacks",
+    "qty": 1,
+    "unit": "can",
+    "location": "Kitchen counter (right)",
+    "notes": "Not fully clear from photo",
+    "id": 15
+  }
+]
