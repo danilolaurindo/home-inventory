@@ -1,12 +1,399 @@
 [
   {
+    "name": "NOCCO cans (mixed)",
+    "category": "Drinks & Beverages",
+    "qty": 28,
+    "unit": "cans",
+    "location": "Main shelves - middle",
+    "notes": "Caribbean & Golden Grape visible",
+    "id": 1
+  },
+  {
+    "name": "Polar Spring water",
+    "category": "Drinks & Beverages",
+    "qty": 8,
+    "unit": "bottles",
+    "location": "Boxes area",
+    "notes": "Shrink-wrapped",
+    "id": 2
+  },
+  {
+    "name": "Pepsi Max",
+    "category": "Drinks & Beverages",
+    "qty": 1,
+    "unit": "bottle",
+    "location": "Main shelves - middle",
+    "notes": "Large bottle",
+    "id": 3
+  },
+  {
+    "name": "Heineken beer",
+    "category": "Drinks & Beverages",
+    "qty": 12,
+    "unit": "cans",
+    "location": "Boxes area",
+    "notes": "",
+    "id": 4
+  },
+  {
+    "name": "Other beer/RTD (silver)",
+    "category": "Drinks & Beverages",
+    "qty": 10,
+    "unit": "cans",
+    "location": "Boxes area",
+    "notes": "",
+    "id": 5
+  },
+  {
+    "name": "Alpro plant protein drink",
+    "category": "Drinks & Beverages",
+    "qty": 2,
+    "unit": "bottles",
+    "location": "Boxes area",
+    "notes": "",
+    "id": 6
+  },
+  {
+    "name": "Plant-based milk powder",
+    "category": "Drinks & Beverages",
+    "qty": 2,
+    "unit": "bags",
+    "location": "Main shelves - top",
+    "notes": "Oat milk powder",
+    "id": 7
+  },
+  {
+    "name": "Tea (tin)",
+    "category": "Drinks & Beverages",
+    "qty": 1,
+    "unit": "tin",
+    "location": "Boxes area",
+    "notes": "",
+    "id": 8
+  },
+  {
+    "name": "Pringles Salt & Vinegar",
+    "category": "Pantry & Snacks",
+    "qty": 1,
+    "unit": "tube",
+    "location": "Main shelves - bottom",
+    "notes": "",
+    "id": 9
+  },
+  {
+    "name": "Protein bars (Nick\u2019s & others)",
+    "category": "Pantry & Snacks",
+    "qty": 4,
+    "unit": "boxes",
+    "location": "Main shelves - bottom",
+    "notes": "",
+    "id": 10
+  },
+  {
+    "name": "Packaged snacks (nuts/dried fruit)",
+    "category": "Pantry & Snacks",
+    "qty": 4,
+    "unit": "packs",
+    "location": "Main shelves - middle",
+    "notes": "Approximate",
+    "id": 11
+  },
+  {
+    "name": "Pasta",
+    "category": "Pantry & Snacks",
+    "qty": 2,
+    "unit": "packs",
+    "location": "Main shelves - middle",
+    "notes": "",
+    "id": 12
+  },
+  {
+    "name": "Jarred red peppers in oil",
+    "category": "Pantry & Snacks",
+    "qty": 1,
+    "unit": "jar",
+    "location": "Main shelves - middle",
+    "notes": "",
+    "id": 13
+  },
+  {
+    "name": "Olive oil (storage)",
+    "category": "Pantry & Snacks",
+    "qty": 1,
+    "unit": "bottle",
+    "location": "Main shelves - middle",
+    "notes": "",
+    "id": 14
+  },
+  {
+    "name": "Seasonings / spices",
+    "category": "Pantry & Snacks",
+    "qty": 5,
+    "unit": "jars",
+    "location": "Main shelves - middle",
+    "notes": "Mixed",
+    "id": 15
+  },
+  {
+    "name": "Baking soda",
+    "category": "Pantry & Snacks",
+    "qty": 1,
+    "unit": "box",
+    "location": "Main shelves - middle",
+    "notes": "",
+    "id": 16
+  },
+  {
+    "name": "Paper cups (disposable)",
+    "category": "Pantry & Snacks",
+    "qty": 25,
+    "unit": "cups",
+    "location": "Main shelves - bottom",
+    "notes": "Stack",
+    "id": 17
+  },
+  {
+    "name": "Disposable plates",
+    "category": "Pantry & Snacks",
+    "qty": 25,
+    "unit": "plates",
+    "location": "Main shelves - bottom",
+    "notes": "Stack",
+    "id": 18
+  },
+  {
+    "name": "Coffee (beans/ground)",
+    "category": "Pantry & Snacks",
+    "qty": 3,
+    "unit": "bags",
+    "location": "Main shelves - top",
+    "notes": "",
+    "id": 19
+  },
+  {
+    "name": "Sweetener/sugar",
+    "category": "Pantry & Snacks",
+    "qty": 1,
+    "unit": "pack",
+    "location": "Main shelves - middle",
+    "notes": "",
+    "id": 20
+  },
+  {
+    "name": "Tea bags (boxes)",
+    "category": "Pantry & Snacks",
+    "qty": 2,
+    "unit": "boxes",
+    "location": "Main shelves - middle",
+    "notes": "",
+    "id": 21
+  },
+  {
+    "name": "Harpic toilet cleaner",
+    "category": "Cleaning & Laundry",
+    "qty": 1,
+    "unit": "pack",
+    "location": "Main shelves - bottom",
+    "notes": "",
+    "id": 22
+  },
+  {
+    "name": "The Pink Stuff toilet cleaner",
+    "category": "Cleaning & Laundry",
+    "qty": 2,
+    "unit": "packs",
+    "location": "Main shelves - top",
+    "notes": "",
+    "id": 23
+  },
+  {
+    "name": "Vanish carpet & upholstery cleaner",
+    "category": "Cleaning & Laundry",
+    "qty": 1,
+    "unit": "spray",
+    "location": "Main shelves - top",
+    "notes": "",
+    "id": 24
+  },
+  {
+    "name": "Spray bottles (general cleaners)",
+    "category": "Cleaning & Laundry",
+    "qty": 3,
+    "unit": "bottles",
+    "location": "Main shelves - middle",
+    "notes": "Blue & yellow liquids",
+    "id": 25
+  },
+  {
+    "name": "Bleach/strong cleaner",
+    "category": "Cleaning & Laundry",
+    "qty": 1,
+    "unit": "bottle",
+    "location": "Main shelves - middle",
+    "notes": "",
+    "id": 26
+  },
+  {
+    "name": "Vileda mop refill",
+    "category": "Cleaning & Laundry",
+    "qty": 1,
+    "unit": "pack",
+    "location": "Main shelves - middle",
+    "notes": "",
+    "id": 27
+  },
+  {
+    "name": "Detergents (general)",
+    "category": "Cleaning & Laundry",
+    "qty": 3,
+    "unit": "items",
+    "location": "Main shelves - middle",
+    "notes": "Assorted",
+    "id": 28
+  },
+  {
+    "name": "Air freshener (Air Wick)",
+    "category": "Cleaning & Laundry",
+    "qty": 1,
+    "unit": "can",
+    "location": "Main shelves - middle",
+    "notes": "",
+    "id": 29
+  },
+  {
+    "name": "Diamond Care cat litter",
+    "category": "Pet Supplies",
+    "qty": 1,
+    "unit": "bag",
+    "location": "Floor - center",
+    "notes": "",
+    "id": 30
+  },
+  {
+    "name": "Ever Clean cat litter",
+    "category": "Pet Supplies",
+    "qty": 1,
+    "unit": "box",
+    "location": "Floor - center",
+    "notes": "Lavender",
+    "id": 31
+  },
+  {
+    "name": "Royal Canin dry cat food (Sterilised)",
+    "category": "Pet Supplies",
+    "qty": 2,
+    "unit": "large bags",
+    "location": "Floor - left corner",
+    "notes": "",
+    "id": 32
+  },
+  {
+    "name": "Gourmet wet cat food (multipacks)",
+    "category": "Pet Supplies",
+    "qty": 6,
+    "unit": "boxes",
+    "location": "Boxes area",
+    "notes": "",
+    "id": 33
+  },
+  {
+    "name": "Weber charcoal briquettes",
+    "category": "BBQ & Outdoor",
+    "qty": 1,
+    "unit": "bag",
+    "location": "Floor - right corner",
+    "notes": "",
+    "id": 34
+  },
+  {
+    "name": "Cotton buds",
+    "category": "Personal Care & Misc",
+    "qty": 2,
+    "unit": "packs",
+    "location": "Main shelves - top",
+    "notes": "",
+    "id": 35
+  },
+  {
+    "name": "Toothpicks",
+    "category": "Personal Care & Misc",
+    "qty": 1,
+    "unit": "pack",
+    "location": "Main shelves - top",
+    "notes": "",
+    "id": 36
+  },
+  {
+    "name": "Hand lotion",
+    "category": "Personal Care & Misc",
+    "qty": 1,
+    "unit": "bottle",
+    "location": "Main shelves - bottom",
+    "notes": "",
+    "id": 37
+  },
+  {
+    "name": "Vitamins / supplements",
+    "category": "Personal Care & Misc",
+    "qty": 3,
+    "unit": "bottles",
+    "location": "Main shelves - middle",
+    "notes": "Approx.",
+    "id": 38
+  },
+  {
+    "name": "FFP2 masks",
+    "category": "Personal Care & Misc",
+    "qty": 1,
+    "unit": "box",
+    "location": "Main shelves - bottom",
+    "notes": "",
+    "id": 39
+  },
+  {
+    "name": "Light therapy lamp",
+    "category": "Misc / Storage",
+    "qty": 1,
+    "unit": "item",
+    "location": "Main shelves - top",
+    "notes": "",
+    "id": 40
+  },
+  {
+    "name": "Cardboard boxes (assorted)",
+    "category": "Misc / Storage",
+    "qty": 10,
+    "unit": "boxes",
+    "location": "Boxes area",
+    "notes": "Moving & product boxes",
+    "id": 41
+  },
+  {
+    "name": "Plastic storage baskets",
+    "category": "Misc / Storage",
+    "qty": 12,
+    "unit": "baskets",
+    "location": "Main shelves - middle",
+    "notes": "In use",
+    "id": 42
+  },
+  {
+    "name": "Small tools (wall plugs, screws)",
+    "category": "Misc / Storage",
+    "qty": 1,
+    "unit": "set",
+    "location": "Main shelves - bottom",
+    "notes": "",
+    "id": 43
+  },
+  {
     "name": "Assorted spirits (vodka/gin/whisky)",
     "category": "Drinks & Beverages",
     "qty": 5,
     "unit": "bottles",
     "location": "Kitchen wall shelf",
     "notes": "Approximate; includes Finlandia and others",
-    "id": 1
+    "id": 44
   },
   {
     "name": "Olive oil (kitchen, in-use)",
@@ -15,7 +402,7 @@
     "unit": "bottle",
     "location": "Kitchen wall shelf",
     "notes": "Extra virgin; green bottle",
-    "id": 2
+    "id": 45
   },
   {
     "name": "Clear cooking oil",
@@ -24,7 +411,7 @@
     "unit": "bottle",
     "location": "Kitchen counter",
     "notes": "Rapeseed/sunflower (approx)",
-    "id": 3
+    "id": 46
   },
   {
     "name": "Ketchup (Felix)",
@@ -33,7 +420,7 @@
     "unit": "bottles",
     "location": "Kitchen wall shelf",
     "notes": "",
-    "id": 4
+    "id": 47
   },
   {
     "name": "Coffee beans (green bag)",
@@ -42,7 +429,7 @@
     "unit": "bag",
     "location": "Kitchen wall shelf",
     "notes": "Unopened",
-    "id": 5
+    "id": 48
   },
   {
     "name": "Snack crisps (bag)",
@@ -51,7 +438,7 @@
     "unit": "bag",
     "location": "Kitchen wall shelf",
     "notes": "In plastic bag",
-    "id": 6
+    "id": 49
   },
   {
     "name": "SodaStream machine",
@@ -60,7 +447,7 @@
     "unit": "item",
     "location": "Kitchen counter",
     "notes": "",
-    "id": 7
+    "id": 50
   },
   {
     "name": "Instant Pot / pressure cooker",
@@ -69,7 +456,7 @@
     "unit": "item",
     "location": "Kitchen counter",
     "notes": "",
-    "id": 8
+    "id": 51
   },
   {
     "name": "NutriBullet blender",
@@ -78,7 +465,7 @@
     "unit": "item",
     "location": "Kitchen counter",
     "notes": "",
-    "id": 9
+    "id": 52
   },
   {
     "name": "Soup maker / blender kettle",
@@ -87,7 +474,7 @@
     "unit": "item",
     "location": "Kitchen wall shelf",
     "notes": "",
-    "id": 10
+    "id": 53
   },
   {
     "name": "Plastic food containers with lids",
@@ -96,7 +483,7 @@
     "unit": "pcs",
     "location": "Kitchen counter",
     "notes": "Mixed sizes; estimate",
-    "id": 11
+    "id": 54
   },
   {
     "name": "Glass food containers with lids",
@@ -105,7 +492,7 @@
     "unit": "sets",
     "location": "Kitchen counter",
     "notes": "Meal-prep glass",
-    "id": 12
+    "id": 55
   },
   {
     "name": "Red onions (net bag)",
@@ -114,7 +501,7 @@
     "unit": "bag",
     "location": "Kitchen counter",
     "notes": "",
-    "id": 13
+    "id": 56
   },
   {
     "name": "Cutting boards (wood)",
@@ -123,7 +510,7 @@
     "unit": "pcs",
     "location": "Kitchen counter (left)",
     "notes": "",
-    "id": 14
+    "id": 57
   },
   {
     "name": "Aerosol can (blue) - likely cream/spray",
@@ -132,6 +519,6 @@
     "unit": "can",
     "location": "Kitchen counter (right)",
     "notes": "Not fully clear from photo",
-    "id": 15
+    "id": 58
   }
 ]
