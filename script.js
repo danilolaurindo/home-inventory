@@ -1,6 +1,6 @@
 (function() {
   // ======== Remote storage config (GitHub JSON only) ========
-  const GH_REPO_OWNER = 'YOUR_USERNAME';      // e.g., danilolaurindo
+  const GH_REPO_OWNER = 'danilolaurindo';      // e.g., danilolaurindo
   const GH_REPO_NAME  = 'home-inventory';     // repository name
   const GH_FILE_PATH  = 'inventory_data.json';// path to JSON file in repo
   const GH_BRANCH     = 'main';               // branch name
