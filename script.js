@@ -24,7 +24,7 @@
   const GH_REPO_OWNER = 'danilolaurindo'; // change if different owner
   const GH_REPO_NAME = 'home-inventory';   // change if your repo name differs
   const GH_FILE_PATH = 'inventory_data.json';
-  const GH_TOKEN = ''; // insert your GitHub personal access token here
+  const GH_TOKEN = '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'; // insert your GitHub personal access token here
 
   /**
    * Fetch inventory data from a remote JSON file hosted on GitHub. This function
