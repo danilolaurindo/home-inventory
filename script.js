@@ -9,8 +9,7 @@
  */
 
 (function () {
-  // Key used to store data in localStorage
-  const STORAGE_KEY = 'homeInventoryData';
+  // No longer using localStorage; inventory data is stored remotely in GitHub
 
   /**
    * Remote storage configuration. When enabled, the application will
@@ -24,7 +23,7 @@
   const GH_REPO_OWNER = 'danilolaurindo'; // change if different owner
   const GH_REPO_NAME = 'home-inventory';   // change if your repo name differs
   const GH_FILE_PATH = 'inventory_data.json';
-  const GH_TOKEN = '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'; // insert your GitHub personal access token here
+  const GH_TOKEN = ''; // insert your GitHub personal access token here
 
   /**
    * Fetch inventory data from a remote JSON file hosted on GitHub. This function
@@ -35,28 +34,42 @@
    *
    * @returns {Promise<Array|null>} The parsed array of inventory items, or null on error.
    */
-async function fetchRemoteData() {
-  if (!REMOTE_STORAGE_ENABLED || !GH_TOKEN) return null;
-  const apiUrl = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_FILE_PATH}`;
-  try {
-    const response = await fetch(apiUrl, {
-      headers: {
-        Authorization: `token ${GH_TOKEN}`,
-        Accept: 'application/vnd.github.v3+json',
-      },
-    });
-    if (!response.ok) return null;
-    const json = await response.json();
-    // GitHub returns file contents base64‑encoded in the `content` field
-    const text = atob(json.content.replace(/\n/g, ''));
-    const data = JSON.parse(text);
-    return Array.isArray(data) ? data : null;
-  } catch (err) {
-    console.error('Error fetching remote inventory:', err);
+  async function fetchRemoteData() {
+    if (!REMOTE_STORAGE_ENABLED) {
+      return null;
+    }
+    // Use the GitHub API to fetch file metadata and content. The API returns
+    // base64‑encoded content in the `content` property. A token can be
+    // supplied to avoid rate limiting and to access private repositories.
+    const apiUrl = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_FILE_PATH}`;
+    try {
+      const response = await fetch(apiUrl, {
+        headers: {
+          Accept: 'application/vnd.github.v3+json',
+          ...(GH_TOKEN ? { Authorization: `token ${GH_TOKEN}` } : {}),
+        },
+      });
+      if (!response.ok) {
+        console.warn('Remote inventory fetch failed:', response.status, response.statusText);
+        return null;
+      }
+      const json = await response.json();
+      // When the file is new or empty, GitHub may return `content` as empty
+      if (!json.content) {
+        return [];
+      }
+      // Decode base64 content (GitHub may include newlines)
+      const decoded = atob(json.content.replace(/\n/g, ''));
+      const data = JSON.parse(decoded);
+      if (Array.isArray(data)) {
+        return data;
+      }
+      console.error('Remote data is not an array');
+    } catch (err) {
+      console.error('Error fetching remote inventory:', err);
+    }
     return null;
   }
-}
-
 
   /**
    * Retrieve the SHA of the remote inventory file on GitHub. The SHA is
@@ -154,71 +167,28 @@ async function fetchRemoteData() {
   // In‑memory array of inventory items
   let inventory = [];
 
-  // Chart instance for category visualization
-  let categoryChart = null;
+  // We no longer use charts in this version
+
+  /**
+   * Generate a unique identifier for an inventory item. This function uses
+   * the current timestamp and a random component encoded in base36 to
+   * minimise collisions across successive calls.
+   *
+   * @returns {string} A unique identifier.
+   */
+  function generateId() {
+    return (
+      Date.now().toString(36) + Math.random().toString(36).substring(2, 11)
+    );
+  }
 
   /**
    * Update or create the bar chart showing total quantity per category.
    * This uses Chart.js (imported in index.html). If the chart already
    * exists, its data will be updated; otherwise a new chart is created.
    */
-  function updateCategoryChart() {
-    // Check if Chart.js is loaded
-    if (typeof Chart === 'undefined') return;
-    const canvas = document.getElementById('categoryChart');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    // Compute totals per category
-    const totals = {};
-    inventory.forEach((item) => {
-      const category = item.category || 'Uncategorised';
-      const qty = typeof item.qty === 'number' ? item.qty : 0;
-      totals[category] = (totals[category] || 0) + qty;
-    });
-    const labels = Object.keys(totals);
-    const data = Object.values(totals);
-    if (categoryChart) {
-      // Update existing chart
-      categoryChart.data.labels = labels;
-      categoryChart.data.datasets[0].data = data;
-      categoryChart.update();
-    } else {
-      // Create new chart
-      categoryChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: 'Total Quantity',
-              data: data,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { display: false },
-          },
-          scales: {
-            x: {
-              title: {
-                display: true,
-                text: 'Category',
-              },
-            },
-            y: {
-              beginAtZero: true,
-              title: {
-                display: true,
-                text: 'Total Quantity',
-              },
-            },
-          },
-        },
-      });
-    }
-  }
+  // Chart functionality has been removed in this version. If charts are needed
+  // in the future, a similar function can be reintroduced.
 
   /**
    * Load inventory data. When remote storage is enabled and a valid token is
@@ -230,13 +200,13 @@ async function fetchRemoteData() {
    * @returns {Promise<void>} Resolves once the inventory array is loaded.
    */
   async function loadInventory() {
-    // Attempt to load from GitHub if configured
-    if (REMOTE_STORAGE_ENABLED && GH_TOKEN) {
+    // Always attempt to load from GitHub. Local fallback is disabled in this version.
+    if (REMOTE_STORAGE_ENABLED) {
       const remoteData = await fetchRemoteData();
       if (remoteData && Array.isArray(remoteData)) {
         inventory = remoteData.map((item) => {
           return {
-            id: item.id || Date.now().toString(),
+            id: item.id || generateId(),
             name: item.name || '',
             category: item.category || '',
             qty: typeof item.qty === 'number' ? item.qty : 0,
@@ -245,14 +215,11 @@ async function fetchRemoteData() {
             notes: item.notes || '',
           };
         });
-        // also cache locally
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
         return;
       }
     }
-    // Fallback to localStorage
-    const saved = localStorage.getItem(STORAGE_KEY);
-    inventory = saved ? JSON.parse(saved) : [];
+    // If remote fetch fails or returns invalid data, start with an empty inventory
+    inventory = [];
   }
 
   /**
@@ -263,10 +230,8 @@ async function fetchRemoteData() {
    * array is mutated.
    */
   function saveInventory() {
-    // Always update local storage
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
-    // Trigger remote update asynchronously
-    if (REMOTE_STORAGE_ENABLED && GH_TOKEN) {
+    // Trigger remote update asynchronously. LocalStorage is no longer used.
+    if (REMOTE_STORAGE_ENABLED) {
       updateRemoteData();
     }
   }
@@ -374,8 +339,7 @@ async function fetchRemoteData() {
       tableBody.appendChild(row);
     });
 
-    // After rendering the table and updating category lists, update the chart
-    updateCategoryChart();
+    // After rendering the table and updating category lists, charts have been removed
   }
 
   /**
