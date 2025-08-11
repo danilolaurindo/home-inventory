@@ -1,519 +1,312 @@
-/*
- * Home Inventory Manager
- *
- * This script powers a simple client‑side inventory management application.
- * It stores all data in the browser's localStorage so that your inventory
- * persists across sessions without any backend or server. Items can be
- * added, edited, deleted, filtered and searched. You can also export
- * your inventory as a JSON file or import a previously exported file.
- */
+(function() {
+  // ======== Remote storage config (GitHub JSON only) ========
+  const GH_REPO_OWNER = 'YOUR_USERNAME';      // e.g., danilolaurindo
+  const GH_REPO_NAME  = 'home-inventory';     // repository name
+  const GH_FILE_PATH  = 'inventory_data.json';// path to JSON file in repo
+  const GH_BRANCH     = 'main';               // branch name
+  const GH_TOKEN      = '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';                   // fine-grained PAT for this repo (Contents: read/write)
 
-(function () {
-  // No longer using localStorage; inventory data is stored remotely in GitHub
-
-  /**
-   * Remote storage configuration. When enabled, the application will
-   * attempt to load and persist inventory data to a JSON file in a
-   * GitHub repository. You must supply your GitHub username,
-   * repository name, path to the JSON file, and a personal access token
-   * with "repo" scope. If REMOTE_STORAGE_ENABLED is false or the token
-   * is left blank, the app will continue to use localStorage only.
-   */
-  const REMOTE_STORAGE_ENABLED = true;
-  const GH_REPO_OWNER = 'danilolaurindo'; // change if different owner
-  const GH_REPO_NAME = 'home-inventory';   // change if your repo name differs
-  const GH_FILE_PATH = 'inventory_data.json';
-  const GH_TOKEN = ''; // insert your GitHub personal access token here
-
-  /**
-   * Fetch inventory data from a remote JSON file hosted on GitHub. This function
-   * constructs the raw file URL and attempts to retrieve the contents. If the
-   * file does not exist or cannot be parsed, it returns null so the caller
-   * can fall back to local storage. The returned data should be an array of
-   * inventory objects. Any network or parsing errors are caught and logged.
-   *
-   * @returns {Promise<Array|null>} The parsed array of inventory items, or null on error.
-   */
-  async function fetchRemoteData() {
-    if (!REMOTE_STORAGE_ENABLED) {
-      return null;
-    }
-    // Use the GitHub API to fetch file metadata and content. The API returns
-    // base64‑encoded content in the `content` property. A token can be
-    // supplied to avoid rate limiting and to access private repositories.
-    const apiUrl = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_FILE_PATH}`;
-    try {
-      const response = await fetch(apiUrl, {
-        headers: {
-          Accept: 'application/vnd.github.v3+json',
-          ...(GH_TOKEN ? { Authorization: `token ${GH_TOKEN}` } : {}),
-        },
-      });
-      if (!response.ok) {
-        console.warn('Remote inventory fetch failed:', response.status, response.statusText);
-        return null;
-      }
-      const json = await response.json();
-      // When the file is new or empty, GitHub may return `content` as empty
-      if (!json.content) {
-        return [];
-      }
-      // Decode base64 content (GitHub may include newlines)
-      const decoded = atob(json.content.replace(/\n/g, ''));
-      const data = JSON.parse(decoded);
-      if (Array.isArray(data)) {
-        return data;
-      }
-      console.error('Remote data is not an array');
-    } catch (err) {
-      console.error('Error fetching remote inventory:', err);
-    }
-    return null;
-  }
-
-  /**
-   * Retrieve the SHA of the remote inventory file on GitHub. The SHA is
-   * required when updating an existing file via the GitHub API. If the file
-   * does not exist, this function returns null.
-   *
-   * @returns {Promise<string|null>} The SHA string or null if the file does not exist.
-   */
-  async function getRemoteFileSha() {
-    const apiUrl = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_FILE_PATH}`;
-    try {
-      const response = await fetch(apiUrl, {
-        headers: {
-          Authorization: `token ${GH_TOKEN}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
-      });
-      if (response.status === 404) {
-        return null;
-      }
-      if (!response.ok) {
-        console.warn('Failed to get remote file SHA:', response.status, response.statusText);
-        return null;
-      }
-      const json = await response.json();
-      return json.sha || null;
-    } catch (err) {
-      console.error('Error fetching remote file SHA:', err);
-      return null;
-    }
-  }
-
-  /**
-   * Persist the current inventory array to a remote JSON file in the
-   * configured GitHub repository. The data is base64 encoded and sent via
-   * a PUT request to the GitHub REST API. If a SHA exists, it is included
-   * to update the file; otherwise GitHub will create a new file. Errors
-   * during the update are caught and logged, but do not interrupt the
-   * application flow.
-   */
-  async function updateRemoteData() {
-    if (!REMOTE_STORAGE_ENABLED || !GH_TOKEN) {
-      return;
-    }
-    const apiUrl = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_FILE_PATH}`;
-    try {
-      const sha = await getRemoteFileSha();
-      const contentString = JSON.stringify(inventory, null, 2);
-      // Encode as base64 for GitHub API
-      const contentBase64 = btoa(unescape(encodeURIComponent(contentString)));
-      const payload = {
-        message: 'Update inventory data',
-        content: contentBase64,
-        branch: 'main',
-      };
-      if (sha) {
-        payload.sha = sha;
-      }
-      const response = await fetch(apiUrl, {
-        method: 'PUT',
-        headers: {
-          Authorization: `token ${GH_TOKEN}`,
-          Accept: 'application/vnd.github.v3+json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        console.warn('Failed to update remote inventory:', response.status, response.statusText);
-      }
-    } catch (err) {
-      console.error('Error updating remote inventory:', err);
-    }
-  }
-
-  // DOM elements
-  const form = document.getElementById('inventory-form');
-  const itemIdField = document.getElementById('item-id');
-  const nameInput = document.getElementById('item-name');
-  const categoryInput = document.getElementById('item-category');
-  const qtyInput = document.getElementById('item-qty');
-  const unitInput = document.getElementById('item-unit');
-  const locationInput = document.getElementById('item-location');
-  const notesInput = document.getElementById('item-notes');
-  const saveButton = document.getElementById('save-button');
-  const cancelEditButton = document.getElementById('cancel-edit');
-  const tableBody = document.querySelector('#inventory-table tbody');
-  const searchInput = document.getElementById('search-input');
-  const categoryFilter = document.getElementById('category-filter');
-  const categoryOptionsList = document.getElementById('category-options');
-  const exportButton = document.getElementById('export-btn');
-  const importButton = document.getElementById('import-btn');
-  const importFileInput = document.getElementById('import-file');
-
-  // In‑memory array of inventory items
+  // ======== App state ========
   let inventory = [];
+  let editingId = null;
+  let sortKey = 'name';
+  let sortDir = 'asc'; // 'asc' or 'desc'
 
-  // We no longer use charts in this version
+  // ======== DOM ========
+  const els = {
+    name: document.getElementById('name'),
+    category: document.getElementById('category'),
+    qty: document.getElementById('qty'),
+    unit: document.getElementById('unit'),
+    location: document.getElementById('location'),
+    notes: document.getElementById('notes'),
+    addBtn: document.getElementById('addBtn'),
+    updateBtn: document.getElementById('updateBtn'),
+    cancelEditBtn: document.getElementById('cancelEditBtn'),
+    tableBody: document.querySelector('#inventoryTable tbody'),
+    tableHead: document.querySelector('#inventoryTable thead'),
+    searchInput: document.getElementById('searchInput'),
+    categoryFilter: document.getElementById('categoryFilter'),
+    exportBtn: document.getElementById('exportBtn'),
+    importInput: document.getElementById('importInput')
+  };
 
-  /**
-   * Generate a unique identifier for an inventory item. This function uses
-   * the current timestamp and a random component encoded in base36 to
-   * minimise collisions across successive calls.
-   *
-   * @returns {string} A unique identifier.
-   */
   function generateId() {
-    return (
-      Date.now().toString(36) + Math.random().toString(36).substring(2, 11)
-    );
+    if (crypto?.randomUUID) return crypto.randomUUID();
+    return 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
   }
 
-  /**
-   * Update or create the bar chart showing total quantity per category.
-   * This uses Chart.js (imported in index.html). If the chart already
-   * exists, its data will be updated; otherwise a new chart is created.
-   */
-  // Chart functionality has been removed in this version. If charts are needed
-  // in the future, a similar function can be reintroduced.
+  // ======== Remote helpers (GitHub Contents API) ========
+  async function ghGetFile() {
+    const url = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_FILE_PATH}?ref=${GH_BRANCH}`;
+    const res = await fetch(url, {
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        ...(GH_TOKEN ? { Authorization: `Bearer ${GH_TOKEN}` } : {})
+      }
+    });
+    if (res.status === 404) return { exists:false, sha:null, data:[] };
+    if (!res.ok) throw new Error('GitHub fetch failed: ' + res.status);
+    const json = await res.json();
+    const text = atob((json.content || '').replace(/\n/g,''));
+    const data = JSON.parse(text || '[]');
+    return { exists:true, sha: json.sha, data };
+  }
 
-  /**
-   * Load inventory data. When remote storage is enabled and a valid token is
-   * present, this function first attempts to fetch the inventory from the
-   * remote JSON file in GitHub. If that fails (for example if the file is
-   * missing or cannot be parsed), it falls back to the locally stored
-   * inventory in localStorage. If neither exists, an empty array is used.
-   *
-   * @returns {Promise<void>} Resolves once the inventory array is loaded.
-   */
+  async function ghPutFile(newData, prevSha) {
+    const url = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_FILE_PATH}`;
+    const body = {
+      message: 'Update inventory_data.json via web app',
+      content: btoa(JSON.stringify(newData, null, 2)),
+      branch: GH_BRANCH,
+      sha: prevSha || undefined
+    };
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        ...(GH_TOKEN ? { Authorization: `Bearer ${GH_TOKEN}` } : {})
+      },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error('GitHub update failed: ' + res.status);
+    return res.json();
+  }
+
+  // ======== Load & Save ========
+  let currentSha = null;
+
   async function loadInventory() {
-    // Always attempt to load from GitHub. Local fallback is disabled in this version.
-    if (REMOTE_STORAGE_ENABLED) {
-      const remoteData = await fetchRemoteData();
-      if (remoteData && Array.isArray(remoteData)) {
-        inventory = remoteData.map((item) => {
-          return {
-            id: item.id || generateId(),
-            name: item.name || '',
-            category: item.category || '',
-            qty: typeof item.qty === 'number' ? item.qty : 0,
-            unit: item.unit || '',
-            location: item.location || '',
-            notes: item.notes || '',
-          };
-        });
-        return;
-      }
-    }
-    // If remote fetch fails or returns invalid data, start with an empty inventory
-    inventory = [];
-  }
-
-  /**
-   * Persist the current inventory array to localStorage and, if remote
-   * storage is enabled, update the remote JSON file on GitHub. The
-   * update to GitHub is asynchronous and any errors are logged but not
-   * propagated. This function should be called every time the inventory
-   * array is mutated.
-   */
-  function saveInventory() {
-    // Trigger remote update asynchronously. LocalStorage is no longer used.
-    if (REMOTE_STORAGE_ENABLED) {
-      updateRemoteData();
+    try {
+      const { exists, sha, data } = await ghGetFile();
+      currentSha = sha || null;
+      // ensure every item has an id
+      inventory = (Array.isArray(data) ? data : []).map(it => ({
+        id: it.id || generateId(),
+        name: it.name || '',
+        category: it.category || '',
+        qty: Number(it.qty || 0),
+        unit: it.unit || '',
+        location: it.location || '',
+        notes: it.notes || ''
+      }));
+      render();
+    } catch (e) {
+      console.error(e);
+      alert('Failed to load inventory from GitHub. Check repo path, branch, and token.');
+      inventory = [];
+      render();
     }
   }
 
-  /**
-   * Reset the form to its default state, clearing all inputs and removing
-   * the editing state. Hides the cancel button and resets the save button text.
-   */
-  function resetForm() {
-    itemIdField.value = '';
-    form.reset();
-    saveButton.textContent = 'Save Item';
-    cancelEditButton.style.display = 'none';
+  async function saveInventory() {
+    try {
+      const data = inventory.map(it => ({ id: it.id, name: it.name, category: it.category, qty: it.qty, unit: it.unit, location: it.location, notes: it.notes }));
+      const json = await ghPutFile(data, currentSha);
+      currentSha = json.content?.sha || currentSha; // update known sha
+    } catch (e) {
+      console.error(e);
+      alert('Failed to save inventory to GitHub. Check token permissions.');
+    }
   }
 
-  /**
-   * Render the inventory table and populate the category controls based
-   * on current data and filters. Filters come from the search input and
-   * category filter drop‑down.
-   */
+  // ======== UI Helpers ========
+  function clearForm() {
+    els.name.value = '';
+    els.category.value = '';
+    els.qty.value = '';
+    els.unit.value = '';
+    els.location.value = '';
+    els.notes.value = '';
+  }
+
+  function startEdit(item) {
+    editingId = item.id;
+    els.name.value = item.name;
+    els.category.value = item.category;
+    els.qty.value = item.qty;
+    els.unit.value = item.unit;
+    els.location.value = item.location;
+    els.notes.value = item.notes;
+    els.addBtn.style.display = 'none';
+    els.updateBtn.style.display = '';
+    els.cancelEditBtn.style.display = '';
+  }
+
+  function stopEdit() {
+    editingId = null;
+    clearForm();
+    els.addBtn.style.display = '';
+    els.updateBtn.style.display = 'none';
+    els.cancelEditBtn.style.display = 'none';
+  }
+
+  // Sorting logic
+  function compare(a, b, key) {
+    const va = a[key]; const vb = b[key];
+    if (key === 'qty') return (Number(va) - Number(vb));
+    return String(va || '').localeCompare(String(vb || ''), undefined, { sensitivity:'base' });
+  }
+
+  function sortData(data) {
+    const arr = [...data].sort((a,b) => compare(a,b,sortKey));
+    if (sortDir === 'desc') arr.reverse();
+    return arr;
+  }
+
+  function updateSortIndicators() {
+    document.querySelectorAll('#inventoryTable thead th').forEach(th => {
+      th.classList.remove('sorted-asc','sorted-desc');
+      const k = th.getAttribute('data-key');
+      if (k && k === sortKey) th.classList.add(sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+    });
+  }
+
+  // ======== Render ========
   function render() {
-    // First, derive the set of categories from the current inventory
-    const categories = new Set(inventory.map((item) => item.category).filter(Boolean));
+    // derive category list
+    const categories = [...new Set(inventory.map(i => i.category).filter(Boolean))].sort();
+    els.categoryFilter.innerHTML = '<option value="">All categories</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
 
-    // Populate the datalist for category input autocomplete
-    categoryOptionsList.innerHTML = '';
-    categories.forEach((cat) => {
-      const option = document.createElement('option');
-      option.value = cat;
-      categoryOptionsList.appendChild(option);
+    const q = (els.searchInput.value || '').trim().toLowerCase();
+    const cf = els.categoryFilter.value || '';
+    let rows = inventory.filter(it => {
+      const text = `${it.name} ${it.location} ${it.notes}`.toLowerCase();
+      const okText = !q || text.includes(q);
+      const okCat = !cf || it.category === cf;
+      return okText && okCat;
     });
 
-    // Populate the category filter drop‑down
-    // Save the currently selected value to restore after resetting options
-    const selectedFilter = categoryFilter.value;
-    categoryFilter.innerHTML = '<option value="">All Categories</option>';
-    categories.forEach((cat) => {
-      const option = document.createElement('option');
-      option.value = cat;
-      option.textContent = cat;
-      categoryFilter.appendChild(option);
-    });
-    if (selectedFilter && categories.has(selectedFilter)) {
-      categoryFilter.value = selectedFilter;
-    }
+    rows = sortData(rows);
+    updateSortIndicators();
 
-    // Filter inventory by search and category
-    const searchTerm = searchInput.value.trim().toLowerCase();
-    const categoryTerm = categoryFilter.value;
-    const filtered = inventory.filter((item) => {
-      // Category filter: if selected, ensure exact match
-      if (categoryTerm && item.category !== categoryTerm) return false;
-      // Search filter: match name or notes (case insensitive)
-      if (searchTerm) {
-        const haystack = `${item.name} ${item.notes}`.toLowerCase();
-        return haystack.includes(searchTerm);
-      }
-      return true;
-    });
-
-    // Render table body
-    tableBody.innerHTML = '';
-    filtered.forEach((item) => {
-      const row = document.createElement('tr');
-      // Name
-      const nameCell = document.createElement('td');
-      nameCell.textContent = item.name;
-      row.appendChild(nameCell);
-      // Category
-      const categoryCell = document.createElement('td');
-      categoryCell.textContent = item.category;
-      row.appendChild(categoryCell);
-      // Quantity
-      const qtyCell = document.createElement('td');
-      qtyCell.textContent = item.qty;
-      row.appendChild(qtyCell);
-      // Unit
-      const unitCell = document.createElement('td');
-      unitCell.textContent = item.unit;
-      row.appendChild(unitCell);
-      // Location
-      const locationCell = document.createElement('td');
-      locationCell.textContent = item.location;
-      row.appendChild(locationCell);
-      // Notes
-      const notesCell = document.createElement('td');
-      notesCell.textContent = item.notes;
-      row.appendChild(notesCell);
-      // Actions
-      const actionCell = document.createElement('td');
-      // Edit button
-      const editBtn = document.createElement('button');
-      editBtn.textContent = 'Edit';
-      editBtn.className = 'action-button edit-btn';
-      editBtn.onclick = () => startEdit(item.id);
-      actionCell.appendChild(editBtn);
-      // Delete button
-      const deleteBtn = document.createElement('button');
-      deleteBtn.textContent = 'Delete';
-      deleteBtn.className = 'action-button delete-btn';
-      deleteBtn.onclick = () => deleteItem(item.id);
-      actionCell.appendChild(deleteBtn);
-      row.appendChild(actionCell);
-
-      tableBody.appendChild(row);
-    });
-
-    // After rendering the table and updating category lists, charts have been removed
+    els.tableBody.innerHTML = rows.map(it => `
+      <tr data-id="${it.id}">
+        <td>${escapeHtml(it.name)}</td>
+        <td>${escapeHtml(it.category)}</td>
+        <td class="numeric">${Number(it.qty)}</td>
+        <td>${escapeHtml(it.unit)}</td>
+        <td>${escapeHtml(it.location)}</td>
+        <td>${escapeHtml(it.notes)}</td>
+        <td>
+          <button data-action="edit" data-id="${it.id}">Edit</button>
+          <button class="danger" data-action="delete" data-id="${it.id}">Delete</button>
+        </td>
+      </tr>`).join('');
   }
 
-  /**
-   * Handle form submission: either add a new item or update an existing one
-   * depending on whether there is an ID present in the hidden field.
-   */
-  function handleFormSubmit(evt) {
-    evt.preventDefault();
-    const id = itemIdField.value;
-    const name = nameInput.value.trim();
-    const category = categoryInput.value.trim();
-    const qty = qtyInput.value ? parseFloat(qtyInput.value) : 0;
-    const unit = unitInput.value.trim();
-    const location = locationInput.value.trim();
-    const notes = notesInput.value.trim();
-    if (!name) {
-      alert('Please enter an item name.');
-      return;
-    }
-    if (id) {
-      // Update existing item
-      const index = inventory.findIndex((it) => it.id === id);
-      if (index !== -1) {
-        inventory[index] = {
-          id,
-          name,
-          category,
-          qty,
-          unit,
-          location,
-          notes,
-        };
-        saveInventory();
-        resetForm();
+  function escapeHtml(s='') {
+    return s.replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  }
+
+  // ======== Events ========
+  els.addBtn.addEventListener('click', async () => {
+    const item = {
+      id: generateId(),
+      name: els.name.value.trim(),
+      category: els.category.value.trim(),
+      qty: Number(els.qty.value || 0),
+      unit: els.unit.value.trim(),
+      location: els.location.value.trim(),
+      notes: els.notes.value.trim()
+    };
+    if (!item.name) return alert('Name is required');
+    inventory.push(item);
+    stopEdit();
+    render();
+    await saveInventory();
+  });
+
+  els.updateBtn.addEventListener('click', async () => {
+    if (!editingId) return;
+    const idx = inventory.findIndex(i => i.id === editingId);
+    if (idx === -1) return;
+    inventory[idx] = {
+      ...inventory[idx],
+      name: els.name.value.trim(),
+      category: els.category.value.trim(),
+      qty: Number(els.qty.value || 0),
+      unit: els.unit.value.trim(),
+      location: els.location.value.trim(),
+      notes: els.notes.value.trim()
+    };
+    stopEdit();
+    render();
+    await saveInventory();
+  });
+
+  els.cancelEditBtn.addEventListener('click', () => stopEdit());
+
+  // Table actions (edit/delete)
+  els.tableBody.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.getAttribute('data-id');
+    const action = btn.getAttribute('data-action');
+    if (action === 'edit') {
+      const item = inventory.find(i => i.id === id);
+      if (item) startEdit(item);
+    } else if (action === 'delete') {
+      const idx = inventory.findIndex(i => i.id === id);
+      if (idx !== -1 && confirm('Delete this item?')) {
+        inventory.splice(idx,1);
         render();
+        await saveInventory();
       }
+    }
+  });
+
+  // Sorting: click table headers
+  els.tableHead.addEventListener('click', (e) => {
+    const th = e.target.closest('th');
+    if (!th) return;
+    const key = th.getAttribute('data-key');
+    if (!key) return;
+    if (sortKey === key) {
+      sortDir = (sortDir === 'asc') ? 'desc' : 'asc';
     } else {
-      // Add new item, generate a unique ID using timestamp
-      const newItem = {
-        id: Date.now().toString(),
-        name,
-        category,
-        qty,
-        unit,
-        location,
-        notes,
-      };
-      inventory.push(newItem);
-      saveInventory();
-      resetForm();
-      render();
+      sortKey = key;
+      sortDir = 'asc';
     }
-  }
+    render();
+  });
 
-  /**
-   * Begin editing an existing item. Populate the form fields with that item's
-   * data and set the hidden ID field. Show the cancel button and update
-   * the save button's text.
-   *
-   * @param {string} id The item ID to edit.
-   */
-  function startEdit(id) {
-    const item = inventory.find((it) => it.id === id);
-    if (!item) return;
-    itemIdField.value = item.id;
-    nameInput.value = item.name;
-    categoryInput.value = item.category;
-    qtyInput.value = item.qty;
-    unitInput.value = item.unit;
-    locationInput.value = item.location;
-    notesInput.value = item.notes;
-    saveButton.textContent = 'Update Item';
-    cancelEditButton.style.display = 'inline-block';
-  }
+  // Filters
+  els.searchInput.addEventListener('input', render);
+  els.categoryFilter.addEventListener('change', render);
 
-  /**
-   * Delete an item by its ID after confirming with the user.
-   *
-   * @param {string} id The ID of the item to remove.
-   */
-  function deleteItem(id) {
-    if (!confirm('Are you sure you want to delete this item?')) return;
-    const index = inventory.findIndex((it) => it.id === id);
-    if (index !== -1) {
-      inventory.splice(index, 1);
-      saveInventory();
-      // If we were editing this item, reset the form
-      if (itemIdField.value === id) {
-        resetForm();
-      }
-      render();
-    }
-  }
-
-  /**
-   * Export the current inventory to a JSON file. Triggers a download
-   * of a file named inventory_export.json.
-   */
-  function exportJSON() {
-    const dataStr = JSON.stringify(inventory, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
+  // Export/Import
+  els.exportBtn.addEventListener('click', () => {
+    const data = inventory.map(it => ({ id: it.id, name: it.name, category: it.category, qty: it.qty, unit: it.unit, location: it.location, notes: it.notes }));
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'inventory_export.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    a.href = url; a.download = 'inventory_data.json'; a.click();
     URL.revokeObjectURL(url);
-  }
+  });
 
-  /**
-   * Open the hidden file input when the user clicks the import button.
-   */
-  function openImportDialog() {
-    importFileInput.value = '';
-    importFileInput.click();
-  }
-
-  /**
-   * Handle importing data from a selected JSON file. It replaces the
-   * current inventory with the imported items after user confirmation.
-   */
-  function handleImport(evt) {
-    const file = evt.target.files && evt.target.files[0];
+  els.importInput.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      try {
-        const data = JSON.parse(e.target.result);
-        if (!Array.isArray(data)) throw new Error('Invalid format');
-        if (!confirm('Importing will replace your current inventory. Continue?')) {
-          return;
-        }
-        // Use imported data; ensure each item has required properties
-        inventory = data.map((item) => {
-          return {
-            id: item.id || Date.now().toString(),
-            name: item.name || '',
-            category: item.category || '',
-            qty: typeof item.qty === 'number' ? item.qty : 0,
-            unit: item.unit || '',
-            location: item.location || '',
-            notes: item.notes || '',
-          };
-        });
-        saveInventory();
-        resetForm();
-        render();
-      } catch (err) {
-        alert('Failed to import: ' + err.message);
-      }
-    };
-    reader.readAsText(file);
-  }
+    const text = await file.text();
+    let parsed = [];
+    try { parsed = JSON.parse(text); } catch { return alert('Invalid JSON'); }
+    if (!Array.isArray(parsed)) return alert('Expected an array of items');
+    inventory = parsed.map(it => ({
+      id: it.id || generateId(),
+      name: it.name || '',
+      category: it.category || '',
+      qty: Number(it.qty || 0),
+      unit: it.unit || '',
+      location: it.location || '',
+      notes: it.notes || ''
+    }));
+    render();
+    await saveInventory();
+    e.target.value = '';
+  });
 
-  // Event listeners
-  form.addEventListener('submit', handleFormSubmit);
-  cancelEditButton.addEventListener('click', () => {
-    resetForm();
-  });
-  searchInput.addEventListener('input', () => {
-    render();
-  });
-  categoryFilter.addEventListener('change', () => {
-    render();
-  });
-  exportButton.addEventListener('click', exportJSON);
-  importButton.addEventListener('click', openImportDialog);
-  importFileInput.addEventListener('change', handleImport);
-
-  // Initial load from storage (remote or local) and render once loaded
-  (async function init() {
-    await loadInventory();
-    render();
-  })();
+  // Init
+  loadInventory();
 })();
