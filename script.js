@@ -35,34 +35,28 @@
    *
    * @returns {Promise<Array|null>} The parsed array of inventory items, or null on error.
    */
-  async function fetchRemoteData() {
-    if (!REMOTE_STORAGE_ENABLED || !GH_TOKEN) {
-      return null;
-    }
-    const rawUrl = `https://raw.githubusercontent.com/${GH_REPO_OWNER}/${GH_REPO_NAME}/main/${GH_FILE_PATH}`;
-    try {
-      const response = await fetch(rawUrl, {
-        headers: {
-          // Use a token here to avoid rate limiting; GitHub raw can still be accessed anonymously
-          Authorization: `token ${GH_TOKEN}`,
-        },
-      });
-      if (!response.ok) {
-        // A 404 is expected if the file doesn't exist yet
-        console.warn('Remote inventory fetch failed:', response.status, response.statusText);
-        return null;
-      }
-      const text = await response.text();
-      const data = JSON.parse(text);
-      if (Array.isArray(data)) {
-        return data;
-      }
-      console.error('Remote data is not an array');
-    } catch (err) {
-      console.error('Error fetching remote inventory:', err);
-    }
+async function fetchRemoteData() {
+  if (!REMOTE_STORAGE_ENABLED || !GH_TOKEN) return null;
+  const apiUrl = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_FILE_PATH}`;
+  try {
+    const response = await fetch(apiUrl, {
+      headers: {
+        Authorization: `token ${GH_TOKEN}`,
+        Accept: 'application/vnd.github.v3+json',
+      },
+    });
+    if (!response.ok) return null;
+    const json = await response.json();
+    // GitHub returns file contents base64‑encoded in the `content` field
+    const text = atob(json.content.replace(/\n/g, ''));
+    const data = JSON.parse(text);
+    return Array.isArray(data) ? data : null;
+  } catch (err) {
+    console.error('Error fetching remote inventory:', err);
     return null;
   }
+}
+
 
   /**
    * Retrieve the SHA of the remote inventory file on GitHub. The SHA is
