@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home Inventory</title>
+    <!-- Link to the stylesheet for basic styling -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Home Inventory Manager</h1>
+      <p class="subtitle">Add, view and manage your home inventory directly from your browser.</p>
+    </header>
+
+    <!-- Section for adding or editing items -->
+    <section id="form-section">
+      <h2>Add or Edit Item</h2>
+      <form id="inventory-form">
+        <!-- Hidden field for the item ID when editing an existing entry -->
+        <input type="hidden" id="item-id" value="" />
+        <div class="form-row">
+          <label for="item-name">Item Name:</label>
+          <input type="text" id="item-name" required />
+        </div>
+        <div class="form-row">
+          <label for="item-category">Category:</label>
+          <!-- Use datalist for autocomplete of existing categories -->
+          <input type="text" id="item-category" list="category-options" />
+          <datalist id="category-options"></datalist>
+        </div>
+        <div class="form-row">
+          <label for="item-qty">Quantity:</label>
+          <input type="number" id="item-qty" min="0" step="1" value="1" />
+          <label for="item-unit" class="unit-label">Unit:</label>
+          <input type="text" id="item-unit" placeholder="e.g., pcs, cans" />
+        </div>
+        <div class="form-row">
+          <label for="item-location">Location:</label>
+          <input type="text" id="item-location" placeholder="e.g., pantry, basement" />
+        </div>
+        <div class="form-row">
+          <label for="item-notes">Notes:</label>
+          <input type="text" id="item-notes" placeholder="Any special notes" />
+        </div>
+        <div class="button-row">
+          <button type="submit" id="save-button">Save Item</button>
+          <button type="button" id="cancel-edit" style="display: none;" title="Cancel edit and clear form">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Filters and search controls -->
+    <section id="filter-section">
+      <h2>Inventory List</h2>
+      <div class="filters">
+        <label for="search-input">Search:</label>
+        <input type="text" id="search-input" placeholder="Search by name or notes" />
+        <label for="category-filter">Category:</label>
+        <select id="category-filter">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Table to display inventory items -->
+    <table id="inventory-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Quantity</th>
+          <th>Unit</th>
+          <th>Location</th>
+          <th>Notes</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <!-- Import/export controls -->
+    <div id="export-import">
+      <button id="export-btn" title="Download your inventory as JSON">Export JSON</button>
+      <input type="file" id="import-file" accept="application/json" style="display: none;" />
+      <button id="import-btn" title="Import a previously exported JSON file">Import JSON</button>
+    </div>
+
+    <!-- Link to the JavaScript that drives the application logic -->
+    <script src="script.js"></script>
+  </body>
+</html>
