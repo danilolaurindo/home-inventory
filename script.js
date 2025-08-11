@@ -4,7 +4,7 @@
   const GH_REPO_NAME  = 'home-inventory';     // repository name
   const GH_FILE_PATH  = 'inventory_data.json';// path to JSON file in repo
   const GH_BRANCH     = 'main';               // branch name
-  const GH_TOKEN      = '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';                   // fine-grained PAT for this repo (Contents: read/write)
+  const GH_TOKEN      = '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';                   // fine-grained PAT for this repo (Contents: read/write)
 
   // ======== App state ========
   let inventory = [];
