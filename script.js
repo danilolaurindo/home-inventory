@@ -12,6 +12,132 @@
   // Key used to store data in localStorage
   const STORAGE_KEY = 'homeInventoryData';
 
+  /**
+   * Remote storage configuration. When enabled, the application will
+   * attempt to load and persist inventory data to a JSON file in a
+   * GitHub repository. You must supply your GitHub username,
+   * repository name, path to the JSON file, and a personal access token
+   * with "repo" scope. If REMOTE_STORAGE_ENABLED is false or the token
+   * is left blank, the app will continue to use localStorage only.
+   */
+  const REMOTE_STORAGE_ENABLED = true;
+  const GH_REPO_OWNER = 'danilolaurindo'; // change if different owner
+  const GH_REPO_NAME = 'home-inventory';   // change if your repo name differs
+  const GH_FILE_PATH = 'inventory_data.json';
+  const GH_TOKEN = ''; // insert your GitHub personal access token here
+
+  /**
+   * Fetch inventory data from a remote JSON file hosted on GitHub. This function
+   * constructs the raw file URL and attempts to retrieve the contents. If the
+   * file does not exist or cannot be parsed, it returns null so the caller
+   * can fall back to local storage. The returned data should be an array of
+   * inventory objects. Any network or parsing errors are caught and logged.
+   *
+   * @returns {Promise<Array|null>} The parsed array of inventory items, or null on error.
+   */
+  async function fetchRemoteData() {
+    if (!REMOTE_STORAGE_ENABLED || !GH_TOKEN) {
+      return null;
+    }
+    const rawUrl = `https://raw.githubusercontent.com/${GH_REPO_OWNER}/${GH_REPO_NAME}/main/${GH_FILE_PATH}`;
+    try {
+      const response = await fetch(rawUrl, {
+        headers: {
+          // Use a token here to avoid rate limiting; GitHub raw can still be accessed anonymously
+          Authorization: `token ${GH_TOKEN}`,
+        },
+      });
+      if (!response.ok) {
+        // A 404 is expected if the file doesn't exist yet
+        console.warn('Remote inventory fetch failed:', response.status, response.statusText);
+        return null;
+      }
+      const text = await response.text();
+      const data = JSON.parse(text);
+      if (Array.isArray(data)) {
+        return data;
+      }
+      console.error('Remote data is not an array');
+    } catch (err) {
+      console.error('Error fetching remote inventory:', err);
+    }
+    return null;
+  }
+
+  /**
+   * Retrieve the SHA of the remote inventory file on GitHub. The SHA is
+   * required when updating an existing file via the GitHub API. If the file
+   * does not exist, this function returns null.
+   *
+   * @returns {Promise<string|null>} The SHA string or null if the file does not exist.
+   */
+  async function getRemoteFileSha() {
+    const apiUrl = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_FILE_PATH}`;
+    try {
+      const response = await fetch(apiUrl, {
+        headers: {
+          Authorization: `token ${GH_TOKEN}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
+      if (response.status === 404) {
+        return null;
+      }
+      if (!response.ok) {
+        console.warn('Failed to get remote file SHA:', response.status, response.statusText);
+        return null;
+      }
+      const json = await response.json();
+      return json.sha || null;
+    } catch (err) {
+      console.error('Error fetching remote file SHA:', err);
+      return null;
+    }
+  }
+
+  /**
+   * Persist the current inventory array to a remote JSON file in the
+   * configured GitHub repository. The data is base64 encoded and sent via
+   * a PUT request to the GitHub REST API. If a SHA exists, it is included
+   * to update the file; otherwise GitHub will create a new file. Errors
+   * during the update are caught and logged, but do not interrupt the
+   * application flow.
+   */
+  async function updateRemoteData() {
+    if (!REMOTE_STORAGE_ENABLED || !GH_TOKEN) {
+      return;
+    }
+    const apiUrl = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_FILE_PATH}`;
+    try {
+      const sha = await getRemoteFileSha();
+      const contentString = JSON.stringify(inventory, null, 2);
+      // Encode as base64 for GitHub API
+      const contentBase64 = btoa(unescape(encodeURIComponent(contentString)));
+      const payload = {
+        message: 'Update inventory data',
+        content: contentBase64,
+        branch: 'main',
+      };
+      if (sha) {
+        payload.sha = sha;
+      }
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${GH_TOKEN}`,
+          Accept: 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        console.warn('Failed to update remote inventory:', response.status, response.statusText);
+      }
+    } catch (err) {
+      console.error('Error updating remote inventory:', err);
+    }
+  }
+
   // DOM elements
   const form = document.getElementById('inventory-form');
   const itemIdField = document.getElementById('item-id');
@@ -101,20 +227,54 @@
   }
 
   /**
-   * Load inventory data from localStorage. If the key is missing,
-   * initialise an empty array.
+   * Load inventory data. When remote storage is enabled and a valid token is
+   * present, this function first attempts to fetch the inventory from the
+   * remote JSON file in GitHub. If that fails (for example if the file is
+   * missing or cannot be parsed), it falls back to the locally stored
+   * inventory in localStorage. If neither exists, an empty array is used.
+   *
+   * @returns {Promise<void>} Resolves once the inventory array is loaded.
    */
-  function loadInventory() {
+  async function loadInventory() {
+    // Attempt to load from GitHub if configured
+    if (REMOTE_STORAGE_ENABLED && GH_TOKEN) {
+      const remoteData = await fetchRemoteData();
+      if (remoteData && Array.isArray(remoteData)) {
+        inventory = remoteData.map((item) => {
+          return {
+            id: item.id || Date.now().toString(),
+            name: item.name || '',
+            category: item.category || '',
+            qty: typeof item.qty === 'number' ? item.qty : 0,
+            unit: item.unit || '',
+            location: item.location || '',
+            notes: item.notes || '',
+          };
+        });
+        // also cache locally
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
+        return;
+      }
+    }
+    // Fallback to localStorage
     const saved = localStorage.getItem(STORAGE_KEY);
     inventory = saved ? JSON.parse(saved) : [];
   }
 
   /**
-   * Persist the current inventory array to localStorage. You should call
-   * this every time you mutate the inventory array.
+   * Persist the current inventory array to localStorage and, if remote
+   * storage is enabled, update the remote JSON file on GitHub. The
+   * update to GitHub is asynchronous and any errors are logged but not
+   * propagated. This function should be called every time the inventory
+   * array is mutated.
    */
   function saveInventory() {
+    // Always update local storage
     localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
+    // Trigger remote update asynchronously
+    if (REMOTE_STORAGE_ENABLED && GH_TOKEN) {
+      updateRemoteData();
+    }
   }
 
   /**
@@ -393,7 +553,9 @@
   importButton.addEventListener('click', openImportDialog);
   importFileInput.addEventListener('change', handleImport);
 
-  // Initial load from storage and render
-  loadInventory();
-  render();
+  // Initial load from storage (remote or local) and render once loaded
+  (async function init() {
+    await loadInventory();
+    render();
+  })();
 })();
