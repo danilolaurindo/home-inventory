@@ -1,63 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Home Inventory</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <header>
-    <h1>Home Inventory</h1>
-    <p class="subtitle">Shared JSON stored in your GitHub repo</p>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home Inventory Manager</title>
+    <!-- Link to the stylesheet for basic styling -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Home Inventory Manager</h1>
+      <p class="subtitle">
+        Add, view and manage your home inventory directly from your browser.
+      </p>
+    </header>
 
-  <section id="controls">
-    <div class="row">
-      <div class="field"><label>Name</label><input id="name" /></div>
-      <div class="field"><label>Category</label><input id="category" /></div>
-      <div class="field small"><label>Qty</label><input id="qty" type="number" min="0" step="1" /></div>
-      <div class="field small"><label>Unit</label><input id="unit" /></div>
-      <div class="field"><label>Location</label><input id="location" /></div>
-      <div class="field"><label>Notes</label><input id="notes" /></div>
-    </div>
-    <div class="row actions">
-      <button id="addBtn" class="primary">Add</button>
-      <button id="updateBtn" class="primary" style="display:none;">Update</button>
-      <button id="cancelEditBtn" class="secondary" style="display:none;">Cancel</button>
-    </div>
-  </section>
+    <!-- Section for adding or editing items -->
+    <section id="form-section">
+      <h2>Add or Edit Item</h2>
+      <form id="inventory-form">
+        <!-- Hidden field for the item ID when editing an existing entry -->
+        <input type="hidden" id="item-id" value="" />
+        <div class="form-row">
+          <label for="item-name">Item Name:</label>
+          <input type="text" id="item-name" required />
+        </div>
+        <div class="form-row">
+          <label for="item-category">Category:</label>
+          <!-- Use datalist for autocomplete of existing categories -->
+          <input type="text" id="item-category" list="category-options" />
+          <datalist id="category-options"></datalist>
+        </div>
+        <div class="form-row">
+          <label for="item-qty">Quantity:</label>
+          <input type="number" id="item-qty" min="0" step="1" value="1" />
+          <label for="item-unit" class="unit-label">Unit:</label>
+          <input type="text" id="item-unit" placeholder="e.g., pcs, cans" />
+        </div>
+        <div class="form-row">
+          <label for="item-location">Location:</label>
+          <input
+            type="text"
+            id="item-location"
+            placeholder="e.g., pantry, basement"
+          />
+        </div>
+        <div class="form-row">
+          <label for="item-notes">Notes:</label>
+          <input
+            type="text"
+            id="item-notes"
+            placeholder="Any special notes"
+          />
+        </div>
+        <div class="button-row">
+          <button type="submit" id="save-button">Save Item</button>
+          <button
+            type="button"
+            id="cancel-edit"
+            style="display: none;"
+            title="Cancel edit and clear form"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </section>
 
-  <section id="filters">
-    <input id="searchInput" placeholder="Search name/location/notes..." />
-    <select id="categoryFilter"><option value="">All categories</option></select>
-  </section>
+    <!-- Filters and search controls -->
+    <section id="filter-section">
+      <h2>Inventory List</h2>
+      <div class="filters">
+        <label for="search-input">Search:</label>
+        <input
+          type="text"
+          id="search-input"
+          placeholder="Search by name or notes"
+        />
+        <label for="category-filter">Category:</label>
+        <select id="category-filter">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+    </section>
 
-  <section id="tableWrap">
-    <table id="inventoryTable">
+    <!-- Table to display inventory items -->
+    <table id="inventory-table">
       <thead>
         <tr>
-          <th data-key="name">Name <span class="sort"></span></th>
-          <th data-key="category">Category <span class="sort"></span></th>
-          <th data-key="qty" class="numeric">Qty <span class="sort"></span></th>
-          <th data-key="unit">Unit <span class="sort"></span></th>
-          <th data-key="location">Location <span class="sort"></span></th>
-          <th data-key="notes">Notes <span class="sort"></span></th>
+          <th data-column="name">Name</th>
+          <th data-column="category">Category</th>
+          <th data-column="qty">Qty</th>
+          <th data-column="unit">Unit</th>
+          <th data-column="location">Location</th>
+          <th data-column="notes">Notes</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
-  </section>
 
-  <section id="importExport">
-    <button id="exportBtn">Export JSON</button>
-    <label class="file">
-      Import JSON
-      <input id="importInput" type="file" accept="application/json" style="display:none;" />
-    </label>
-  </section>
+    <!-- Import/export controls -->
+    <div id="export-import">
+      <button id="export-btn" title="Download your inventory as JSON">Export JSON</button>
+      <input
+        type="file"
+        id="import-file"
+        accept="application/json"
+        style="display: none;"
+      />
+      <button id="import-btn" title="Import a previously exported JSON file">
+        Import JSON
+      </button>
+      <button id="copy-btn" title="Copy the current JSON to your clipboard">
+        Copy JSON
+      </button>
+      <button id="github-btn" title="Open the GitHub edit page to paste updated JSON">
+        Open GitHub Edit Page
+      </button>
+    </div>
 
-  <script src="script.js"></script>
-</body>
+    <!-- Link to the JavaScript that drives the application logic -->
+    <script src="script.js"></script>
+  </body>
 </html>
