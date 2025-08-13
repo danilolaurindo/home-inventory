@@ -21,8 +21,12 @@
   // requires a write key or API token to update the data, put it in
   // JSON_STORE_WRITE_KEY. Leave JSON_STORE_WRITE_KEY empty if not needed.
   const REMOTE_STORAGE_ENABLED = true;
-  const JSON_STORE_URL = 'https://extendsclass.com/jsonstorage/1f4106a1d4c9';
+  const JSON_STORE_URL = '';
   const JSON_STORE_WRITE_KEY = '';
+  // Some JSON storage services require a custom header for the write key.
+  // For example, jsonstorage.net expects 'X-Access-Key', while jsonbin.io
+  // uses 'X-Master-Key'. Adjust this constant to match your service.
+  const JSON_STORE_HEADER_NAME = 'X-Access-Key';
 
   // ==== DOM references ====
   const form = document.getElementById('inventory-form');
@@ -97,10 +101,11 @@
     try {
       const response = await fetch(JSON_STORE_URL, {
         method: 'PUT',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
           ...(JSON_STORE_WRITE_KEY
-            ? { 'X-Access-Key': JSON_STORE_WRITE_KEY }
+            ? { [JSON_STORE_HEADER_NAME]: JSON_STORE_WRITE_KEY }
             : {}),
         },
         body: JSON.stringify(plain, null, 2),
@@ -112,9 +117,11 @@
           response.statusText
         );
       }
+      return response.ok;
     } catch (err) {
       console.error('Error updating remote inventory:', err);
     }
+    return false;
   }
 
   async function loadInventory() {
@@ -415,12 +422,11 @@
     });
   });
 
-  // Handle saving the current inventory to the shared cloud JSON.  This
-  // function calls updateRemoteData(), which performs a PUT request to
-  // the configured JSON store.  After the request completes (or fails),
-  // we alert the user with the status.  Note: remote updates are
-  // disabled if REMOTE_STORAGE_ENABLED is false or JSON_STORE_URL is
-  // empty.
+  // Handle saving the current inventory to the shared cloud JSON.
+  // This function calls updateRemoteData(), which performs a PUT request to
+  // the configured JSON store. After the request completes, we alert the
+  // user with the status. Remote updates are disabled if
+  // REMOTE_STORAGE_ENABLED is false or JSON_STORE_URL is empty.
   if (saveCloudButton) {
     saveCloudButton.addEventListener('click', async (evt) => {
       evt.preventDefault();
@@ -430,24 +436,12 @@
       }
       // Persist changes to local storage first, then update remote
       saveInventory();
-      try {
-        await updateRemoteData();
+      const success = await updateRemoteData();
+      if (success) {
         alert('Inventory saved to cloud.');
-      } catch (err) {
-        alert('Failed to save inventory to cloud: ' + err.message);
+      } else {
+        alert('Failed to save inventory to cloud. Check your JSON store URL and key.');
       }
-    });
-  }
-
-  // Save the current inventory to the remote JSON storage when the user
-  // clicks the "Save to Cloud" button. This allows any user to persist
-  // their changes without needing GitHub authentication. A message
-  // alert informs the user if the save was attempted.
-  if (saveCloudButton) {
-    saveCloudButton.addEventListener('click', async (evt) => {
-      evt.preventDefault();
-      await updateRemoteData();
-      alert('Inventory sent to the cloud storage. It may take a moment for the shared file to update.');
     });
   }
 
