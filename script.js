@@ -1,22 +1,39 @@
 /*
- * Home Inventory Manager (Remote Sync Version)
+ * Home Inventory Manager (GitHub Actions Edition)
  *
  * This script powers a client‑side inventory management application that
- * synchronises its data with a JSON file in a GitHub repository. It
- * supports adding, editing, deleting, sorting, searching and filtering
- * items. After each modification, the updated inventory is pushed to
- * the repository using the GitHub Contents API. A personal access
- * token with appropriate permissions must be supplied via the
- * configuration constants below.
+ * synchronises its data with a JSON file stored in a GitHub repository.
+ * To avoid embedding a personal access token in the browser, updates
+ * are not written directly from the client. Instead, the application
+ * provides a “Prepare GitHub Update” button which generates a link to
+ * create a new issue in your repository. A GitHub Action (stored in
+ * your repo) can read the JSON data from the issue body and commit
+ * it using a secret token stored in your repository’s secrets.
  */
 
 (function () {
   // ==== Remote storage configuration ====
+  // Whether to load initial data from GitHub. If true, the app will fetch
+  // inventory_data.json from the specified repository using the raw
+  // GitHub URL. No authentication is required for reading public files.
   const REMOTE_STORAGE_ENABLED = true;
+  // GitHub repository owner and name
   const GH_REPO_OWNER = 'danilolaurindo';
   const GH_REPO_NAME = 'home-inventory';
+  // File path and branch for the inventory JSON file
   const GH_FILE_PATH = 'inventory_data.json';
   const GH_BRANCH = 'main';
+  // Construct the raw.githubusercontent.com URL for the JSON file
+  const RAW_BASE_URL =
+    'https://raw.githubusercontent.com/' +
+    GH_REPO_OWNER +
+    '/' +
+    GH_REPO_NAME +
+    '/' +
+    GH_BRANCH +
+    '/' +
+    GH_FILE_PATH;
+  // Token is no longer used on the client; kept for backward compatibility
   const GH_TOKEN = '';
 
   // ==== DOM references ====
@@ -51,35 +68,27 @@
   }
 
   async function fetchRemoteData() {
-    if (!REMOTE_STORAGE_ENABLED) {
-      return null;
-    }
-    const apiUrl = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_FILE_PATH}`;
+    // Load the inventory from a raw JSON file in the repository. This
+    // function does not require authentication because raw files are
+    // publicly accessible on GitHub. If the file cannot be fetched or
+    // parsed, null is returned.
+    if (!REMOTE_STORAGE_ENABLED) return null;
     try {
-      const response = await fetch(apiUrl, {
-        headers: {
-          Accept: 'application/vnd.github.v3+json',
-          ...(GH_TOKEN ? { Authorization: `token ${GH_TOKEN}` } : {}),
-        },
-      });
+      const response = await fetch(RAW_BASE_URL);
       if (!response.ok) {
         console.warn(
-          'Remote inventory fetch failed:',
+          'Failed to fetch remote inventory:',
           response.status,
           response.statusText
         );
         return null;
       }
-      const json = await response.json();
-      if (!json.content) {
-        return [];
-      }
-      const decoded = atob(json.content.replace(/\n/g, ''));
-      const data = JSON.parse(decoded);
+      const text = await response.text();
+      const data = JSON.parse(text);
       if (Array.isArray(data)) {
         return data;
       }
-      console.error('Remote data is not an array');
+      console.error('Remote inventory is not an array');
     } catch (err) {
       console.error('Error fetching remote inventory:', err);
     }
@@ -178,9 +187,19 @@
   }
 
   function saveInventory() {
-    if (REMOTE_STORAGE_ENABLED) {
-      updateRemoteData();
+    // Persist the current inventory to localStorage so changes are
+    // maintained across page reloads. The GitHub JSON file will be
+    // updated via a GitHub Action after you create an issue with
+    // the updated data (see prepareGithubUpdateLink).
+    try {
+      const plain = inventory.map(({ id, ...rest }) => rest);
+      localStorage.setItem('inventory', JSON.stringify(plain));
+    } catch (err) {
+      console.warn('Failed to save inventory to localStorage:', err);
     }
+    // Refresh the prepared GitHub issue link so it contains the
+    // current state of the inventory.
+    prepareGithubUpdateLink();
   }
 
   function render() {
@@ -445,8 +464,56 @@
       sortInventoryBy(column);
     });
   });
+
+  // === GitHub update helpers ===
+  const githubUpdateButton = document.getElementById('github-update-btn');
+  const githubIssueLink = document.getElementById('github-issue-link');
+
+  /**
+   * Build a link to create a new GitHub issue containing the current
+   * inventory data. The issue title and body are pre‑populated so that
+   * a GitHub Action can read the JSON from the issue body and update
+   * the inventory_data.json file using a repository secret.
+   */
+  function prepareGithubUpdateLink() {
+    if (!githubIssueLink) return;
+    const plain = inventory.map(({ id, ...rest }) => rest);
+    // If there is no data yet, hide the link
+    if (plain.length === 0) {
+      githubIssueLink.style.display = 'none';
+      return;
+    }
+    const title = 'Update inventory data';
+    // JSON wrapped in fenced code block for easier extraction
+    const body = '```json\n' + JSON.stringify(plain, null, 2) + '\n```';
+    const labels = 'inventory-update';
+    const url =
+      'https://github.com/' +
+      GH_REPO_OWNER +
+      '/' +
+      GH_REPO_NAME +
+      '/issues/new?title=' +
+      encodeURIComponent(title) +
+      '&labels=' +
+      encodeURIComponent(labels) +
+      '&body=' +
+      encodeURIComponent(body);
+    githubIssueLink.href = url;
+    githubIssueLink.style.display = 'inline-block';
+  }
+
+  if (githubUpdateButton) {
+    githubUpdateButton.addEventListener('click', (evt) => {
+      evt.preventDefault();
+      prepareGithubUpdateLink();
+      // Optionally open the link automatically or simply focus on it
+      githubIssueLink.focus();
+    });
+  }
   (async function init() {
     await loadInventory();
     render();
+    // Initialise the GitHub issue link based on the loaded inventory
+    prepareGithubUpdateLink();
   })();
 })();
