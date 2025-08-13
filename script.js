@@ -190,16 +190,15 @@
     // Persist the current inventory to localStorage so changes are
     // maintained across page reloads. The GitHub JSON file will be
     // updated via a GitHub Action after you create an issue with
-    // the updated data (see prepareGithubUpdateLink).
+    // the updated data.
     try {
       const plain = inventory.map(({ id, ...rest }) => rest);
       localStorage.setItem('inventory', JSON.stringify(plain));
     } catch (err) {
       console.warn('Failed to save inventory to localStorage:', err);
     }
-    // Refresh the prepared GitHub issue link so it contains the
-    // current state of the inventory.
-    prepareGithubUpdateLink();
+    // Note: there is no need to refresh a GitHub link here because
+    // the update workflow relies on copying JSON to the clipboard.
   }
 
   function render() {
@@ -466,26 +465,30 @@
   });
 
   // === GitHub update helpers ===
-  const githubUpdateButton = document.getElementById('github-update-btn');
-  const githubIssueLink = document.getElementById('github-issue-link');
+  // Modal elements for preparing a GitHub update.  The button with id
+  // open-issue-btn will trigger showing the modal.  The modal shows the
+  // current inventory JSON and provides a link to open a new issue.
+  const openIssueButton = document.getElementById('open-issue-btn');
+  const issueModal = document.getElementById('issue-modal');
+  const issueJsonTextarea = document.getElementById('issue-json');
+  const issueLink = document.getElementById('issue-link');
+  const closeIssueModal = document.getElementById('close-issue-modal');
 
   /**
-   * Build a link to create a new GitHub issue containing the current
-   * inventory data. The issue title and body are pre‑populated so that
-   * a GitHub Action can read the JSON from the issue body and update
-   * the inventory_data.json file using a repository secret.
+   * Prepare the inventory JSON and display it in a modal. The modal
+   * contains a textarea for manual copy and a link to open a new
+   * GitHub issue. This avoids reliance on the clipboard API and
+   * simplifies the user workflow. The JSON does not include the
+   * internal `id` property used in the UI.
    */
-  function prepareGithubUpdateLink() {
-    if (!githubIssueLink) return;
+  function prepareIssueModal() {
+    // Build plain JSON without internal IDs
     const plain = inventory.map(({ id, ...rest }) => rest);
-    // If there is no data yet, hide the link
-    if (plain.length === 0) {
-      githubIssueLink.style.display = 'none';
-      return;
-    }
+    const jsonStr = JSON.stringify(plain, null, 2);
+    // Populate the textarea with the JSON
+    issueJsonTextarea.value = jsonStr;
+    // Configure the GitHub issue link (title and label)
     const title = 'Update inventory data';
-    // JSON wrapped in fenced code block for easier extraction
-    const body = '```json\n' + JSON.stringify(plain, null, 2) + '\n```';
     const labels = 'inventory-update';
     const url =
       'https://github.com/' +
@@ -495,25 +498,33 @@
       '/issues/new?title=' +
       encodeURIComponent(title) +
       '&labels=' +
-      encodeURIComponent(labels) +
-      '&body=' +
-      encodeURIComponent(body);
-    githubIssueLink.href = url;
-    githubIssueLink.style.display = 'inline-block';
+      encodeURIComponent(labels);
+    issueLink.href = url;
+    // Show the modal
+    if (issueModal) {
+      issueModal.classList.remove('hidden');
+    }
   }
 
-  if (githubUpdateButton) {
-    githubUpdateButton.addEventListener('click', (evt) => {
+  // Open the issue modal when the user clicks the Prepare GitHub Update button.
+  if (openIssueButton) {
+    openIssueButton.addEventListener('click', (evt) => {
       evt.preventDefault();
-      prepareGithubUpdateLink();
-      // Optionally open the link automatically or simply focus on it
-      githubIssueLink.focus();
+      prepareIssueModal();
+    });
+  }
+  // Close the issue modal when the user clicks the close button.
+  if (closeIssueModal) {
+    closeIssueModal.addEventListener('click', (evt) => {
+      evt.preventDefault();
+      if (issueModal) {
+        issueModal.classList.add('hidden');
+      }
     });
   }
   (async function init() {
     await loadInventory();
     render();
-    // Initialise the GitHub issue link based on the loaded inventory
-    prepareGithubUpdateLink();
+    // Copy button and issue button are always available; nothing else to initialise
   })();
 })();
