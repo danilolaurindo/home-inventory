@@ -13,28 +13,16 @@
 
 (function () {
   // ==== Remote storage configuration ====
-  // Whether to load initial data from GitHub. If true, the app will fetch
-  // inventory_data.json from the specified repository using the raw
-  // GitHub URL. No authentication is required for reading public files.
+  // To allow anyone to save changes without requiring a GitHub account, this
+  // version uses a public JSON storage API. You must create a JSON endpoint
+  // on a service like ExtendsClass (https://extendsclass.com/json-storage.html),
+  // jsonstorage.net, or another free JSON storage provider. Set the URL
+  // below to the endpoint that stores your inventory JSON. If the provider
+  // requires a write key or API token to update the data, put it in
+  // JSON_STORE_WRITE_KEY. Leave JSON_STORE_WRITE_KEY empty if not needed.
   const REMOTE_STORAGE_ENABLED = true;
-  // GitHub repository owner and name
-  const GH_REPO_OWNER = 'danilolaurindo';
-  const GH_REPO_NAME = 'home-inventory';
-  // File path and branch for the inventory JSON file
-  const GH_FILE_PATH = 'inventory_data.json';
-  const GH_BRANCH = 'main';
-  // Construct the raw.githubusercontent.com URL for the JSON file
-  const RAW_BASE_URL =
-    'https://raw.githubusercontent.com/' +
-    GH_REPO_OWNER +
-    '/' +
-    GH_REPO_NAME +
-    '/' +
-    GH_BRANCH +
-    '/' +
-    GH_FILE_PATH;
-  // Token is no longer used on the client; kept for backward compatibility
-  const GH_TOKEN = '';
+  const JSON_STORE_URL = '';
+  const JSON_STORE_WRITE_KEY = '';
 
   // ==== DOM references ====
   const form = document.getElementById('inventory-form');
@@ -54,6 +42,7 @@
   const exportButton = document.getElementById('export-btn');
   const importButton = document.getElementById('import-btn');
   const importFileInput = document.getElementById('import-file');
+  const saveCloudButton = document.getElementById('save-cloud-btn');
 
   // ==== State ====
   let inventory = [];
@@ -68,13 +57,12 @@
   }
 
   async function fetchRemoteData() {
-    // Load the inventory from a raw JSON file in the repository. This
-    // function does not require authentication because raw files are
-    // publicly accessible on GitHub. If the file cannot be fetched or
-    // parsed, null is returned.
-    if (!REMOTE_STORAGE_ENABLED) return null;
+    // Load the inventory from a remote JSON storage endpoint. The endpoint
+    // should return a JSON array. If fetching or parsing fails, null is
+    // returned. A missing URL or disabled remote storage also returns null.
+    if (!REMOTE_STORAGE_ENABLED || !JSON_STORE_URL) return null;
     try {
-      const response = await fetch(RAW_BASE_URL);
+      const response = await fetch(JSON_STORE_URL);
       if (!response.ok) {
         console.warn(
           'Failed to fetch remote inventory:',
@@ -83,8 +71,7 @@
         );
         return null;
       }
-      const text = await response.text();
-      const data = JSON.parse(text);
+      const data = await response.json();
       if (Array.isArray(data)) {
         return data;
       }
@@ -95,63 +82,28 @@
     return null;
   }
 
-  async function getRemoteFileSha() {
-    const apiUrl = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_FILE_PATH}`;
-    try {
-      const response = await fetch(apiUrl, {
-        headers: {
-          Authorization: `token ${GH_TOKEN}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
-      });
-      if (response.status === 404) {
-        return null;
-      }
-      if (!response.ok) {
-        console.warn(
-          'Failed to get remote file SHA:',
-          response.status,
-          response.statusText
-        );
-        return null;
-      }
-      const json = await response.json();
-      return json.sha || null;
-    } catch (err) {
-      console.error('Error fetching remote file SHA:', err);
-      return null;
-    }
-  }
+  // Removed getRemoteFileSha; not needed for JSON storage API
 
   async function updateRemoteData() {
-    if (!REMOTE_STORAGE_ENABLED || !GH_TOKEN) {
+    // Update the remote JSON storage endpoint with the current inventory.
+    // This function sends the plain inventory (without internal IDs) as
+    // JSON. If the storage provider requires a secret or token for
+    // updating, set JSON_STORE_WRITE_KEY accordingly. A missing URL
+    // disables this update silently.
+    if (!REMOTE_STORAGE_ENABLED || !JSON_STORE_URL) {
       return;
     }
-    const apiUrl = `https://api.github.com/repos/${GH_REPO_OWNER}/${GH_REPO_NAME}/contents/${GH_FILE_PATH}`;
+    const plain = inventory.map(({ id, ...rest }) => rest);
     try {
-      const sha = await getRemoteFileSha();
-      const contentString = JSON.stringify(
-        inventory.map(({ id, ...rest }) => rest),
-        null,
-        2
-      );
-      const contentBase64 = btoa(unescape(encodeURIComponent(contentString)));
-      const payload = {
-        message: 'Update inventory data',
-        content: contentBase64,
-        branch: GH_BRANCH,
-      };
-      if (sha) {
-        payload.sha = sha;
-      }
-      const response = await fetch(apiUrl, {
+      const response = await fetch(JSON_STORE_URL, {
         method: 'PUT',
         headers: {
-          Authorization: `token ${GH_TOKEN}`,
-          Accept: 'application/vnd.github.v3+json',
           'Content-Type': 'application/json',
+          ...(JSON_STORE_WRITE_KEY
+            ? { 'X-Access-Key': JSON_STORE_WRITE_KEY }
+            : {}),
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(plain, null, 2),
       });
       if (!response.ok) {
         console.warn(
@@ -188,9 +140,8 @@
 
   function saveInventory() {
     // Persist the current inventory to localStorage so changes are
-    // maintained across page reloads. The GitHub JSON file will be
-    // updated via a GitHub Action after you create an issue with
-    // the updated data.
+    // maintained across page reloads. Remote updates via JSON storage
+    // are triggered manually when the user clicks the Save to Cloud button.
     try {
       const plain = inventory.map(({ id, ...rest }) => rest);
       localStorage.setItem('inventory', JSON.stringify(plain));
@@ -464,64 +415,50 @@
     });
   });
 
-  // === GitHub update helpers ===
-  // Modal elements for preparing a GitHub update.  The button with id
-  // open-issue-btn will trigger showing the modal.  The modal shows the
-  // current inventory JSON and provides a link to open a new issue.
-  const openIssueButton = document.getElementById('open-issue-btn');
-  const issueModal = document.getElementById('issue-modal');
-  const issueJsonTextarea = document.getElementById('issue-json');
-  const issueLink = document.getElementById('issue-link');
-  const closeIssueModal = document.getElementById('close-issue-modal');
-
-  /**
-   * Prepare the inventory JSON and display it in a modal. The modal
-   * contains a textarea for manual copy and a link to open a new
-   * GitHub issue. This avoids reliance on the clipboard API and
-   * simplifies the user workflow. The JSON does not include the
-   * internal `id` property used in the UI.
-   */
-  function prepareIssueModal() {
-    // Build plain JSON without internal IDs
-    const plain = inventory.map(({ id, ...rest }) => rest);
-    const jsonStr = JSON.stringify(plain, null, 2);
-    // Populate the textarea with the JSON
-    issueJsonTextarea.value = jsonStr;
-    // Configure the GitHub issue link (title and label)
-    const title = 'Update inventory data';
-    const labels = 'inventory-update';
-    const url =
-      'https://github.com/' +
-      GH_REPO_OWNER +
-      '/' +
-      GH_REPO_NAME +
-      '/issues/new?title=' +
-      encodeURIComponent(title) +
-      '&labels=' +
-      encodeURIComponent(labels);
-    issueLink.href = url;
-    // Show the modal
-    if (issueModal) {
-      issueModal.classList.remove('hidden');
-    }
-  }
-
-  // Open the issue modal when the user clicks the Prepare GitHub Update button.
-  if (openIssueButton) {
-    openIssueButton.addEventListener('click', (evt) => {
+  // Handle saving the current inventory to the shared cloud JSON.  This
+  // function calls updateRemoteData(), which performs a PUT request to
+  // the configured JSON store.  After the request completes (or fails),
+  // we alert the user with the status.  Note: remote updates are
+  // disabled if REMOTE_STORAGE_ENABLED is false or JSON_STORE_URL is
+  // empty.
+  if (saveCloudButton) {
+    saveCloudButton.addEventListener('click', async (evt) => {
       evt.preventDefault();
-      prepareIssueModal();
-    });
-  }
-  // Close the issue modal when the user clicks the close button.
-  if (closeIssueModal) {
-    closeIssueModal.addEventListener('click', (evt) => {
-      evt.preventDefault();
-      if (issueModal) {
-        issueModal.classList.add('hidden');
+      if (!REMOTE_STORAGE_ENABLED || !JSON_STORE_URL) {
+        alert('Cloud save is not configured. Please set JSON_STORE_URL in script.js');
+        return;
+      }
+      // Persist changes to local storage first, then update remote
+      saveInventory();
+      try {
+        await updateRemoteData();
+        alert('Inventory saved to cloud.');
+      } catch (err) {
+        alert('Failed to save inventory to cloud: ' + err.message);
       }
     });
   }
+
+  // Save the current inventory to the remote JSON storage when the user
+  // clicks the "Save to Cloud" button. This allows any user to persist
+  // their changes without needing GitHub authentication. A message
+  // alert informs the user if the save was attempted.
+  if (saveCloudButton) {
+    saveCloudButton.addEventListener('click', async (evt) => {
+      evt.preventDefault();
+      await updateRemoteData();
+      alert('Inventory sent to the cloud storage. It may take a moment for the shared file to update.');
+    });
+  }
+
+  // === GitHub update helpers ===
+  // There is no GitHub update modal in the cloud version.  All users will
+  // use the "Save to Cloud" button instead.
+  const openIssueButton = null;
+
+
+  // Open the issue modal when the user clicks the Prepare GitHub Update button.
+  // No GitHub issue modal in the cloud version, so no event handlers here.
   (async function init() {
     await loadInventory();
     render();

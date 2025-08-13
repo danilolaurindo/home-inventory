@@ -195,55 +195,16 @@
         >
           Import JSON
         </button>
-      </section>
-
-      <!-- GitHub Update Section -->
-      <section class="mt-6 space-y-2">
         <button
-          id="open-issue-btn"
-          class="bg-yellow-500 hover:bg-yellow-600 text-white font-medium px-4 py-2 rounded shadow"
+          id="save-cloud-btn"
+          class="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded shadow"
+          title="Save changes to the shared cloud file"
         >
-          Prepare GitHub Update
+          Save to Cloud
         </button>
-        <p class="text-sm text-gray-600">
-          Click “Prepare GitHub Update” to open a small window with your latest inventory in JSON format and a link to create a new GitHub issue. Copy the JSON, click the link, paste it into the issue body, and submit. A workflow in your repository will commit the changes automatically.
-        </p>
       </section>
 
-      <!-- Issue Modal (hidden by default) -->
-      <div
-        id="issue-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden"
-        style="z-index: 1000;"
-      >
-        <div class="bg-white w-full max-w-2xl rounded-lg shadow-lg p-6 space-y-4">
-          <h3 class="text-lg font-semibold text-gray-800">Prepare GitHub Update</h3>
-          <p class="text-sm text-gray-600">
-            Copy the JSON below and paste it into the body of a new issue on GitHub. Then submit the issue to trigger the update workflow.
-          </p>
-          <textarea
-            id="issue-json"
-            class="w-full h-48 border border-gray-300 rounded p-2 font-mono text-sm resize-none"
-            readonly
-          ></textarea>
-          <div class="flex justify-between items-center">
-            <a
-              id="issue-link"
-              href="#"
-              target="_blank"
-              class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded shadow"
-            >
-              Open GitHub Issue
-            </a>
-            <button
-              id="close-issue-modal"
-              class="bg-gray-500 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded shadow"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
+      <!-- Cloud Update Section (removed GitHub update) -->
     </main>
 
     <!-- Include application logic -->
