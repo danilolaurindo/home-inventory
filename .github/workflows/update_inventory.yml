@@ -1,0 +1,49 @@
+name: Update Inventory from Issue
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  update_inventory:
+    # Only run when the issue has the label 'inventory-update'.
+    if: contains(github.event.issue.labels.*.name, 'inventory-update')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Extract JSON from issue and update file
+        run: |
+          python - <<'PY'
+          import os, json, re, sys
+          # Read the body of the issue from the environment
+          body = os.environ.get('ISSUE_BODY', '')
+          # Look for a fenced JSON code block
+          match = re.search(r'```json\n(.*?)\n```', body, re.DOTALL)
+          if not match:
+              print('No JSON code block found in the issue body')
+              sys.exit(0)
+          try:
+              data = json.loads(match.group(1))
+          except json.JSONDecodeError as e:
+              print('Failed to parse JSON from issue:', e)
+              sys.exit(1)
+          # Write the JSON to inventory_data.json in the repository root
+          with open('inventory_data.json', 'w') as f:
+              json.dump(data, f, indent=2)
+          print(f'Updated inventory with {len(data)} items')
+          PY
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+
+      - name: Commit updated inventory
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Update inventory from issue #${{ github.event.issue.number }}
+          file_pattern: inventory_data.json
