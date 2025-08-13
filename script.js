@@ -21,7 +21,7 @@
   // requires a write key or API token to update the data, put it in
   // JSON_STORE_WRITE_KEY. Leave JSON_STORE_WRITE_KEY empty if not needed.
   const REMOTE_STORAGE_ENABLED = true;
-  const JSON_STORE_URL = '';
+  const JSON_STORE_URL = 'https://extendsclass.com/jsonstorage/1f4106a1d4c9';
   const JSON_STORE_WRITE_KEY = '';
 
   // ==== DOM references ====
