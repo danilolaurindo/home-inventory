@@ -13,7 +13,7 @@
 
 
 // ==== JSONBin.io config ====
-const JSONBIN_BASE = 'https://api.jsonbin.io/v3/b/';
+const JSONBIN_BASE = 'https://api.jsonbin.io/v3';
 
 // If you already created a bin in the JSONBin dashboard, paste its ID here.
 // (looks like: 64fc1234abcd567890ef1234)
