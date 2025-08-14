@@ -105,40 +105,68 @@
   // Removed getRemoteFileSha; not needed for JSON storage API
 
   async function updateRemoteData() {
-    // Update the remote JSON storage endpoint with the current inventory.
-    // This function sends the plain inventory (without internal IDs) as
-    // JSON. If the storage provider requires a secret or token for
-    // updating, set JSON_STORE_WRITE_KEY accordingly. A missing URL
-    // disables this update silently.
-    if (!REMOTE_STORAGE_ENABLED || !JSON_STORE_URL) {
-      return;
+  if (!REMOTE_STORAGE_ENABLED || !JSON_STORE_URL) return false;
+
+  const url = JSON_STORE_URL.replace(/\/+$/, '');
+  const base = new URL(url);
+
+  const headers = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json; charset=utf-8',
+  };
+  if (JSON_STORE_WRITE_KEY) {
+    headers[JSON_STORE_HEADER_NAME || 'X-Access-Key'] = JSON_STORE_WRITE_KEY;
+  }
+
+  const payload = inventory.map(({ id, ...rest }) => rest);
+
+  // Attempt 1: PUT to the configured URL (update existing item)
+  let res = await fetch(url, {
+    method: 'PUT',
+    mode: 'cors',
+    credentials: 'omit',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  if (res.status === 404) {
+    // Attempt 2: POST to /api/items to create a new item (in case URL is wrong)
+    const createUrl = `${base.origin}/api/items`;
+    const resText = await res.text().catch(() => '');
+    console.warn('PUT 404 (not found). Response:', res.status, resText);
+
+    res = await fetch(createUrl, {
+      method: 'POST',
+      mode: 'cors',
+      credentials: 'omit',
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      const created = await res.json().catch(() => ({}));
+      // jsonstorage typically returns the new item's URL in a field like "uri" or similar
+      const newUrl = created?.uri || created?.url || created?.link;
+      alert(
+        'Created a new JSON item on the server.\n' +
+        (newUrl
+          ? `➡ Please update JSON_STORE_URL in script.js to:\n${newUrl}`
+          : 'Could not detect new URL; check the network response for the created resource URL.')
+      );
+      return true;
     }
-    const plain = inventory.map(({ id, ...rest }) => rest);
-    try {
-      const response = await fetch(JSON_STORE_URL, {
-        method: 'PUT',
-        mode: 'cors',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(JSON_STORE_WRITE_KEY
-            ? { [JSON_STORE_HEADER_NAME]: JSON_STORE_WRITE_KEY }
-            : {}),
-        },
-        body: JSON.stringify(plain, null, 2),
-      });
-      if (!response.ok) {
-        console.warn(
-          'Failed to update remote inventory:',
-          response.status,
-          response.statusText
-        );
-      }
-      return response.ok;
-    } catch (err) {
-      console.error('Error updating remote inventory:', err);
-    }
+  }
+
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    alert(`Save failed (${res.status}). Server said:\n${err.slice(0, 300)}...`);
     return false;
   }
+
+  alert('Saved to cloud ✅');
+  return true;
+}
+
 
   async function loadInventory() {
     if (REMOTE_STORAGE_ENABLED) {
