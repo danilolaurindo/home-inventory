@@ -26,7 +26,7 @@
   // Some JSON storage services require a custom header for the write key.
   // For example, jsonstorage.net expects 'X-Access-Key', while jsonbin.io
   // uses 'X-Master-Key'. Adjust this constant to match your service.
-  const JSON_STORE_HEADER_NAME = 'X-Access-Key';
+  const JSON_STORE_HEADER_NAME = '';
 
   // ==== DOM references ====
   const form = document.getElementById('inventory-form');
@@ -104,58 +104,24 @@
 
   // Removed getRemoteFileSha; not needed for JSON storage API
 
-  async function updateRemoteData() {
+ async function updateRemoteData() {
   if (!REMOTE_STORAGE_ENABLED || !JSON_STORE_URL) return false;
 
   const url = JSON_STORE_URL.replace(/\/+$/, '');
-  const base = new URL(url);
-
   const headers = {
     'Accept': 'application/json',
     'Content-Type': 'application/json; charset=utf-8',
   };
-  if (JSON_STORE_WRITE_KEY) {
-    headers[JSON_STORE_HEADER_NAME || 'X-Access-Key'] = JSON_STORE_WRITE_KEY;
-  }
 
   const payload = inventory.map(({ id, ...rest }) => rest);
 
-  // Attempt 1: PUT to the configured URL (update existing item)
-  let res = await fetch(url, {
+  const res = await fetch(url, {
     method: 'PUT',
     mode: 'cors',
     credentials: 'omit',
     headers,
     body: JSON.stringify(payload),
   });
-
-  if (res.status === 404) {
-    // Attempt 2: POST to /api/items to create a new item (in case URL is wrong)
-    const createUrl = `${base.origin}/api/items`;
-    const resText = await res.text().catch(() => '');
-    console.warn('PUT 404 (not found). Response:', res.status, resText);
-
-    res = await fetch(createUrl, {
-      method: 'POST',
-      mode: 'cors',
-      credentials: 'omit',
-      headers,
-      body: JSON.stringify(payload),
-    });
-
-    if (res.ok) {
-      const created = await res.json().catch(() => ({}));
-      // jsonstorage typically returns the new item's URL in a field like "uri" or similar
-      const newUrl = created?.uri || created?.url || created?.link;
-      alert(
-        'Created a new JSON item on the server.\n' +
-        (newUrl
-          ? `➡ Please update JSON_STORE_URL in script.js to:\n${newUrl}`
-          : 'Could not detect new URL; check the network response for the created resource URL.')
-      );
-      return true;
-    }
-  }
 
   if (!res.ok) {
     const err = await res.text().catch(() => '');
@@ -166,6 +132,7 @@
   alert('Saved to cloud ✅');
   return true;
 }
+
 
 
   async function loadInventory() {
