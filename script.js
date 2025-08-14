@@ -22,7 +22,7 @@
   // JSON_STORE_WRITE_KEY. Leave JSON_STORE_WRITE_KEY empty if not needed.
   const REMOTE_STORAGE_ENABLED = true;
   const JSON_STORE_URL = 'https://api.jsonstorage.net/v1/json/10d3be9b-0700-4539-b32f-9770aa2d2337/3de0e7ac-e977-46f8-b5e6-b2798bddd987';
-  const JSON_STORE_WRITE_KEY = '';
+  const JSON_STORE_WRITE_KEY = '1859da94-f38d-4c94-961a-6afa76d0636d';
   // Some JSON storage services require a custom header for the write key.
   // For example, jsonstorage.net expects 'X-Access-Key', while jsonbin.io
   // uses 'X-Master-Key'. Adjust this constant to match your service.
