@@ -11,6 +11,27 @@
  * it using a secret token stored in your repository’s secrets.
  */
 
+
+// ==== JSONBin.io config ====
+const JSONBIN_BASE = 'https://api.jsonbin.io/v3/b/';
+
+// If you already created a bin in the JSONBin dashboard, paste its ID here.
+// (looks like: 64fc1234abcd567890ef1234)
+const JSONBIN_BIN_ID = '689e2228d0ea881f40594577';
+
+// Your JSONBin Master Key (Dashboard → API Keys)
+const JSONBIN_MASTER_KEY = '$2a$10$Veo/skTumVVDsqGkM0ZkB.gSnC5Vt/HIcrbfOHMxt82AHYSU9DmMC';
+
+// Optional: if you’ve created a “Collection”, paste its id here so
+// automatic creation (fallback) saves into that collection:
+const JSONBIN_COLLECTION_ID = '';  // e.g. '64fc12abcde3456789012345' or leave ''
+
+// If true and the bin is missing (404), the app will auto-create one with POST.
+// It will store the new id into localStorage so subsequent saves work.
+const JSONBIN_CREATE_IF_MISSING = true;
+
+
+
 (function () {
   // ==== Remote storage configuration ====
   // To allow anyone to save changes without requiring a GitHub account, this
@@ -58,81 +79,117 @@
     return (
       Date.now().toString(36) + Math.random().toString(36).substring(2, 11)
     );
-  }
+  }// Use localStorage override if we auto-created a new bin previously
+function getActiveBinId() {
+  return localStorage.getItem('JSONBIN_BIN_ID_OVERRIDE') || JSONBIN_BIN_ID;
+}
 
-  async function fetchRemoteData() {
-    // Load the inventory from a remote JSON storage endpoint. The endpoint
-    // should return a JSON array. If fetching or parsing fails, null is
-    // returned. A missing URL or disabled remote storage also returns null.
-    if (!REMOTE_STORAGE_ENABLED || !JSON_STORE_URL) return null;
-    try {
-      const response = await fetch(JSON_STORE_URL);
-      if (!response.ok) {
-        console.warn(
-          'Failed to fetch remote inventory:',
-          response.status,
-          response.statusText
-        );
-        return null;
-      }
-      const data = await response.json();
-      /*
-       * Some JSON storage services (such as jsonbin.io) wrap your data in a
-       * `record` property and include metadata.  Accept both plain arrays
-       * and objects with a `record` array.  If neither case matches, the
-       * remote data is considered invalid.
-       */
-      if (Array.isArray(data)) {
-        return data;
-      }
-      if (data && typeof data === 'object') {
-        // jsonbin.io returns { record: [...] , metadata: {...} }
-        if (Array.isArray(data.record)) {
-          return data.record;
-        }
-        // Some services might nest arrays differently
-        if (data.record && Array.isArray(data.record.data)) {
-          return data.record.data;
-        }
-      }
-      console.error('Remote inventory is not a recognised array format');
-    } catch (err) {
-      console.error('Error fetching remote inventory:', err);
+async function fetchRemoteData() {
+  const binId = getActiveBinId();
+  if (!binId) return null;
+
+  // “latest?meta=false” returns just your array (no wrapper)
+  const url = `${JSONBIN_BASE}/b/${binId}/latest?meta=false`;
+
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      mode: 'cors',
+      credentials: 'omit',
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      console.warn('JSONBin GET failed:', res.status, txt);
+      return null;
     }
+
+    const data = await res.json();
+    if (Array.isArray(data)) return data;
+
+    console.warn('JSON from JSONBin was not an array; falling back to []');
+    return [];
+  } catch (err) {
+    console.error('JSONBin GET error:', err);
     return null;
   }
+}
 
-  // Removed getRemoteFileSha; not needed for JSON storage API
-
- async function updateRemoteData() {
-  if (!REMOTE_STORAGE_ENABLED || !JSON_STORE_URL) return false;
-
-  const url = JSON_STORE_URL.replace(/\/+$/, '');
+async function updateRemoteData() {
+  const binId = getActiveBinId();
   const headers = {
     'Accept': 'application/json',
     'Content-Type': 'application/json; charset=utf-8',
+    'X-Master-Key': JSONBIN_MASTER_KEY,          // required for writes
   };
 
+  // What we persist: remove ephemeral `id`
   const payload = inventory.map(({ id, ...rest }) => rest);
 
-  const res = await fetch(url, {
-    method: 'PUT',
-    mode: 'cors',
-    credentials: 'omit',
-    headers,
-    body: JSON.stringify(payload),
-  });
+  // If we have a bin id, try to update with PUT
+  if (binId) {
+    const putUrl = `${JSONBIN_BASE}/b/${binId}`;
+    let res = await fetch(putUrl, {
+      method: 'PUT',
+      mode: 'cors',
+      credentials: 'omit',
+      headers,
+      body: JSON.stringify(payload),
+    });
 
-  if (!res.ok) {
-    const err = await res.text().catch(() => '');
-    alert(`Save failed (${res.status}). Server said:\n${err.slice(0, 300)}...`);
+    if (res.ok) return true;
+
+    // If not found and auto-create is enabled, try to create
+    if (res.status === 404 && JSONBIN_CREATE_IF_MISSING) {
+      console.warn('JSONBin PUT 404 — attempting POST create');
+    } else {
+      const txt = await res.text().catch(() => '');
+      alert(`Save failed (${res.status}).\n${txt.slice(0, 300)}...`);
+      return false;
+    }
+  }
+
+  // POST create a new bin
+  if (!JSONBIN_MASTER_KEY) {
+    alert('Missing JSONBIN_MASTER_KEY — cannot create or write.');
     return false;
   }
 
-  alert('Saved to cloud ✅');
+  const postUrl = `${JSONBIN_BASE}/b`;
+  const postHeaders = { ...headers };
+  if (JSONBIN_COLLECTION_ID) {
+    postHeaders['X-Collection-Id'] = JSONBIN_COLLECTION_ID;
+  }
+
+  const resPost = await fetch(postUrl, {
+    method: 'POST',
+    mode: 'cors',
+    credentials: 'omit',
+    headers: postHeaders,
+    body: JSON.stringify(payload),
+  });
+
+  if (!resPost.ok) {
+    const txt = await resPost.text().catch(() => '');
+    alert(`Create bin failed (${resPost.status}).\n${txt.slice(0, 300)}...`);
+    return false;
+  }
+
+  // Response example:
+  // { record: [...], metadata: { id: "64fc1234abcd567890ef1234", ... } }
+  const created = await resPost.json().catch(() => null);
+  const newId = created?.metadata?.id;
+  if (newId) {
+    localStorage.setItem('JSONBIN_BIN_ID_OVERRIDE', newId);
+    console.log('JSONBin created new bin:', newId);
+    alert(`Created a new JSONBin.\nRemember to update JSONBIN_BIN_ID in script.js to:\n${newId}`);
+    return true;
+  }
+
+  alert('Created a new bin but could not read its id; check DevTools → Network for the POST response.');
   return true;
 }
-
 
 
   async function loadInventory() {
