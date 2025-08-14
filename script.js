@@ -21,12 +21,12 @@
   // requires a write key or API token to update the data, put it in
   // JSON_STORE_WRITE_KEY. Leave JSON_STORE_WRITE_KEY empty if not needed.
   const REMOTE_STORAGE_ENABLED = true;
-  const JSON_STORE_URL = 'https://api.jsonbin.io/v3/qs/689cc32343b1c97be91d97c5';
+  const JSON_STORE_URL = '';
   const JSON_STORE_WRITE_KEY = '';
   // Some JSON storage services require a custom header for the write key.
   // For example, jsonstorage.net expects 'X-Access-Key', while jsonbin.io
   // uses 'X-Master-Key'. Adjust this constant to match your service.
-  const JSON_STORE_HEADER_NAME = 'X-Master-Key';
+  const JSON_STORE_HEADER_NAME = 'X-Access-Key';
 
   // ==== DOM references ====
   const form = document.getElementById('inventory-form');
@@ -76,10 +76,26 @@
         return null;
       }
       const data = await response.json();
+      /*
+       * Some JSON storage services (such as jsonbin.io) wrap your data in a
+       * `record` property and include metadata.  Accept both plain arrays
+       * and objects with a `record` array.  If neither case matches, the
+       * remote data is considered invalid.
+       */
       if (Array.isArray(data)) {
         return data;
       }
-      console.error('Remote inventory is not an array');
+      if (data && typeof data === 'object') {
+        // jsonbin.io returns { record: [...] , metadata: {...} }
+        if (Array.isArray(data.record)) {
+          return data.record;
+        }
+        // Some services might nest arrays differently
+        if (data.record && Array.isArray(data.record.data)) {
+          return data.record.data;
+        }
+      }
+      console.error('Remote inventory is not a recognised array format');
     } catch (err) {
       console.error('Error fetching remote inventory:', err);
     }
